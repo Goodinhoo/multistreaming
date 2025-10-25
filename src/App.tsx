@@ -4,11 +4,12 @@ import { Footer } from './components/Footer';
 import { Sidebar } from './components/Sidebar';
 import { AddStreamModal } from './components/AddStreamModal';
 import { OptionsModal } from './components/OptionsModal';
+import { DashboardModal } from './components/DashboardModal';
 import { StreamGrid } from './components/StreamGrid';
 import { ChatPanel } from './components/ChatPanel';
 import type { Streamer, Platform } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import { checkStreamStatus, getStreamInfo, getTwitchStreamData } from './services/api';
+import { useSettings } from './hooks/useSettings';
+import { checkStreamStatus, getStreamInfo, getTwitchStreamData, getKickStreamData } from './services/api';
 import { showSuccessToast } from './services/sweetAlert';
 
 import './App.css';
@@ -37,6 +38,11 @@ const checkStreamerStatusWithPriority = async (streamer: Streamer) => {
       if (priorityPlatform === 'twitch') {
         // Usar função otimizada para Twitch
         const data = await getTwitchStreamData(priorityChannelId);
+        isOnline = data.isOnline;
+        streamInfo = data.streamInfo;
+      } else if (priorityPlatform === 'kick') {
+        // Usar função otimizada para Kick
+        const data = await getKickStreamData(priorityChannelId);
         isOnline = data.isOnline;
         streamInfo = data.streamInfo;
       } else {
@@ -101,19 +107,42 @@ function App() {
   const [selectedStreamers, setSelectedStreamers] = useState<Streamer[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
-  const [animationsEnabled, setAnimationsEnabled] = useLocalStorage('animationsEnabled', true);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const { settings, updateSettings } = useSettings();
   const intervalRef = useRef<number | null>(null);
+  const selectedStreamersRef = useRef(selectedStreamers);
   
-  // Controlar animações
+  // Atualizar ref quando selectedStreamers muda
   useEffect(() => {
-    if (animationsEnabled) {
+    selectedStreamersRef.current = selectedStreamers;
+  }, [selectedStreamers]);
+  
+  // Verificar e corrigir limite de visualizadores quando o limite muda
+  useEffect(() => {
+    const currentStreamers = selectedStreamersRef.current;
+    if (currentStreamers.length > settings.maxViewers) {
+      const limitedStreamers = currentStreamers.slice(0, settings.maxViewers);
+      setSelectedStreamers(limitedStreamers);
+      showSuccessToast('Limite Corrigido', `Limite de ${settings.maxViewers} streams aplicado. ${currentStreamers.length - settings.maxViewers} stream(s) foi(ram) fechado(s).`);
+    }
+  }, [settings.maxViewers]); // Só executa quando o limite muda
+
+  // Controlar animações e modo compacto
+  useEffect(() => {
+    if (settings.animations) {
       document.body.classList.remove('animations-disabled');
       document.body.classList.add('animations-enabled');
     } else {
       document.body.classList.remove('animations-enabled');
       document.body.classList.add('animations-disabled');
     }
-  }, [animationsEnabled]);
+    
+    if (settings.compactMode) {
+      document.body.classList.add('compact-mode');
+    } else {
+      document.body.classList.remove('compact-mode');
+    }
+  }, [settings.animations, settings.compactMode]);
   
   // Debug: Verificar localStorage
   useEffect(() => {
@@ -237,7 +266,16 @@ function App() {
       if (isSelected) {
         return prev.filter(s => s.id !== streamer.id);
       } else {
-        return [...prev, streamer];
+        // Verificar se já atingiu o limite
+        if (prev.length >= settings.maxViewers) {
+          // Se atingiu o limite, remover o mais antigo e adicionar o novo
+          const updatedViewing = [...prev.slice(1), streamer];
+          showSuccessToast('Limite Atingido', `Limite de ${settings.maxViewers} streams atingido. O stream mais antigo foi fechado.`);
+          return updatedViewing;
+        } else {
+          // Se não atingiu o limite, adicionar normalmente
+          return [...prev, streamer];
+        }
       }
     });
   };
@@ -275,11 +313,14 @@ function App() {
       <Header 
         onAddStreamer={() => setIsAddModalOpen(true)}
         onOpenOptions={() => setIsOptionsModalOpen(true)}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
       />
       
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: '320px 1fr 320px',
+        gridTemplateColumns: settings.chatPosition === 'left' 
+          ? '320px 320px 1fr' 
+          : '320px 1fr 320px',
         flex: 1,
         overflow: 'hidden'
       }}>
@@ -295,7 +336,16 @@ function App() {
           viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
           onToggleFavorite={handleToggleFavorite}
           onToggleNotifications={handleToggleNotifications}
+          settings={settings}
         />
+        
+        {settings.chatPosition === 'left' && (
+          <ChatPanel 
+            streamers={streamers}
+            selectedStreamer={selectedStreamers[0]}
+            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+          />
+        )}
         
         <div style={{ 
           display: 'flex', 
@@ -306,14 +356,17 @@ function App() {
             streamers={streamers}
             selectedStreamer={selectedStreamers[0]}
             viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+            settings={settings}
           />
         </div>
         
-        <ChatPanel 
-          streamers={streamers}
-          selectedStreamer={selectedStreamers[0]}
-          viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-        />
+        {settings.chatPosition === 'right' && (
+          <ChatPanel 
+            streamers={streamers}
+            selectedStreamer={selectedStreamers[0]}
+            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+          />
+        )}
       </div>
 
       <Footer />
@@ -332,17 +385,40 @@ function App() {
           setStreamers(prev => prev.map(s => s.id === streamer.id ? streamer : s));
         }}
         onRemoveStreamer={handleRemoveStreamer}
-        maxViewers={4}
-        onUpdateMaxViewers={() => {}}
+        settings={settings}
+        onUpdateSettings={updateSettings}
         viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
         onUpdateViewingStreamers={(streamerIds) => {
           const selectedStreamers = streamers.filter(s => streamerIds.has(s.id));
-          setSelectedStreamers(selectedStreamers);
+          // Verificar se excede o limite
+          if (selectedStreamers.length > settings.maxViewers) {
+            // Manter apenas os primeiros até o limite
+            const limitedStreamers = selectedStreamers.slice(0, settings.maxViewers);
+            setSelectedStreamers(limitedStreamers);
+            showSuccessToast('Limite Aplicado', `Apenas ${settings.maxViewers} streams podem ser visualizados simultaneamente.`);
+          } else {
+            setSelectedStreamers(selectedStreamers);
+          }
         }}
-        animationsEnabled={animationsEnabled}
-        onUpdateAnimations={setAnimationsEnabled}
         onToggleFavorite={handleToggleFavorite}
         onToggleNotifications={handleToggleNotifications}
+        onClearAllData={() => {
+          setStreamers([]);
+          setSelectedStreamers([]);
+        }}
+        onImportData={(importedStreamers, importedSettings) => {
+          setStreamers(importedStreamers);
+          updateSettings(importedSettings);
+          setSelectedStreamers([]);
+        }}
+      />
+
+      <DashboardModal
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
+        streamers={streamers}
+        viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+        settings={settings}
       />
     </div>
   );

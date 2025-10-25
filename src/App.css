@@ -1,1 +1,55 @@
 /* App specific styles */
+
+/* Modo Compacto */
+body.compact-mode {
+  font-size: 0.9rem;
+}
+
+body.compact-mode .streamer-card {
+  padding: 0.75rem !important;
+  gap: 0.5rem !important;
+}
+
+body.compact-mode .streamer-avatar {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+body.compact-mode .streamer-info {
+  gap: 0.25rem !important;
+}
+
+body.compact-mode .streamer-name {
+  font-size: 0.9rem !important;
+}
+
+body.compact-mode .streamer-status {
+  font-size: 0.75rem !important;
+}
+
+body.compact-mode .platform-badge {
+  padding: 0.15rem 0.4rem !important;
+  font-size: 0.7rem !important;
+}
+
+body.compact-mode .action-button {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+body.compact-mode .section-header {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.85rem !important;
+}
+
+body.compact-mode .modal-content {
+  padding: 1.5rem !important;
+}
+
+body.compact-mode .modal-header {
+  padding: 1rem 1.5rem !important;
+}
+
+body.compact-mode .modal-footer {
+  padding: 0.75rem 1.5rem !important;
+}

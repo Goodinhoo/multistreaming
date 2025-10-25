@@ -151,18 +151,77 @@ export async function fetchYouTubeChannel(identifier: string): Promise<PlatformP
 
 export async function fetchKickChannel(username: string): Promise<PlatformPreview | null> {
   try {
+    // Usar API pública do Kick (não requer autenticação)
     const response = await fetch(`${KICK_API}/${username}`);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.log(`Canal do Kick não encontrado: ${username}`);
+      return null;
+    }
     
     const data = await response.json();
+    
+    // Verificar se os dados são válidos
+    if (!data || !data.user) {
+      console.log('Dados inválidos retornados da API do Kick');
+      return null;
+    }
+    
     return {
-      name: data.user?.username || username,
-      avatar: data.user?.profile_pic || '',
+      name: data.user.username || username,
+      avatar: data.user.profile_pic || `https://via.placeholder.com/48x48/00ff00/FFFFFF?text=${username.charAt(0).toUpperCase()}`,
       found: true,
       platform: 'kick'
     };
-  } catch {
-    return null;
+  } catch (error) {
+    console.error('Erro ao buscar canal do Kick:', error);
+    // Retornar dados básicos mesmo com erro
+    return {
+      name: username,
+      avatar: `https://via.placeholder.com/48x48/00ff00/FFFFFF?text=${username.charAt(0).toUpperCase()}`,
+      found: true,
+      platform: 'kick'
+    };
+  }
+}
+
+// Função para buscar dados do stream do Kick usando a API pública
+export async function getKickStreamData(channel: string): Promise<{
+  isOnline: boolean;
+  streamInfo: {
+    platform: Platform;
+    title: string;
+    game: string;
+    viewers: number;
+    thumbnail: string;
+  } | null;
+}> {
+  try {
+    // Usar API pública do Kick (não requer autenticação)
+    const response = await fetch(`${KICK_API}/${channel}`);
+    if (!response.ok) {
+      return { isOnline: false, streamInfo: null };
+    }
+    
+    const data = await response.json();
+    
+    // Verificar se está ao vivo
+    if (data.livestream && data.livestream.is_live) {
+      return {
+        isOnline: true,
+        streamInfo: {
+          title: data.livestream.session_title || 'Live Stream',
+          game: data.livestream.categories?.[0]?.name || '',
+          viewers: data.livestream.viewer_count || 0,
+          thumbnail: data.livestream.thumbnail?.src || `https://kick.com/${channel}/thumbnail`,
+          platform: 'kick'
+        }
+      };
+    }
+    
+    return { isOnline: false, streamInfo: null };
+  } catch (error) {
+    console.error('Erro ao buscar dados do stream do Kick:', error);
+    return { isOnline: false, streamInfo: null };
   }
 }
 
@@ -191,10 +250,8 @@ export async function checkStreamStatus(platform: Platform, channelId: string): 
     }
     
     case 'kick': {
-      const kickResponse = await fetch(`https://kick.com/api/v1/channels/${channelId}`);
-      if (!kickResponse.ok) return false;
-      const kickData = await kickResponse.json();
-      return kickData.livestream && kickData.livestream.is_live;
+      const kickData = await getKickStreamData(channelId);
+      return kickData.isOnline;
     }
     
     default:
@@ -263,20 +320,8 @@ export async function getStreamInfo(platform: Platform, channelId: string): Prom
     }
     
     case 'kick': {
-      const response = await fetch(`https://kick.com/api/v1/channels/${channelId}`);
-      if (!response.ok) return null;
-      
-      const data = await response.json();
-      if (data.livestream && data.livestream.is_live) {
-        return {
-          title: data.livestream.session_title || '',
-          game: '',
-          viewers: data.livestream.viewer_count || 0,
-          thumbnail: data.livestream.thumbnail?.src || '',
-          platform: 'kick'
-        };
-      }
-      return null;
+      const kickData = await getKickStreamData(channelId);
+      return kickData.streamInfo;
     }
     
     default:

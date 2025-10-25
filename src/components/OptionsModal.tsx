@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X, Edit, Trash2, Settings, Users, Sliders, Bell, Heart, Tv, Play, Zap } from 'lucide-react';
 import type { Streamer } from '../types';
+import type { AppSettings } from '../types/settings';
 import { EditStreamerModal } from './EditStreamerModal';
 import { useAnimatedClassWithDuration } from '../hooks/useAnimatedClass';
-import { confirmSaveSettings, confirmReduceViewers, confirmDeleteStreamer, showSuccessToast } from '../services/sweetAlert';
+import { confirmSaveSettings, confirmReduceViewers, confirmDeleteStreamer, confirmUnsavedChanges, showSuccessToast, confirmExportData, confirmImportData, confirmClearAllData, showImportSuccess, showExportSuccess, showClearSuccess } from '../services/sweetAlert';
+import { BackupService } from '../services/backupService';
 
 interface OptionsModalProps {
   isOpen: boolean;
@@ -11,19 +13,19 @@ interface OptionsModalProps {
   streamers: Streamer[];
   onUpdateStreamer: (updatedStreamer: Streamer) => void;
   onRemoveStreamer: (id: string) => void;
-  maxViewers: number;
-  onUpdateMaxViewers: (maxViewers: number) => void;
+  settings: AppSettings;
+  onUpdateSettings: (settings: Partial<AppSettings>) => void;
   viewingStreamers: Set<string>;
   onUpdateViewingStreamers: (streamers: Set<string>) => void;
-  animationsEnabled: boolean;
-  onUpdateAnimations: (enabled: boolean) => void;
   onToggleFavorite: (id: string) => void;
   onToggleNotifications: (id: string) => void;
+  onClearAllData: () => void;
+  onImportData: (streamers: Streamer[], settings: AppSettings) => void;
 }
 
-export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onRemoveStreamer, maxViewers, onUpdateMaxViewers, viewingStreamers, onUpdateViewingStreamers, animationsEnabled, onUpdateAnimations, onToggleFavorite, onToggleNotifications }: OptionsModalProps) {
+export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onRemoveStreamer, settings, onUpdateSettings, viewingStreamers, onUpdateViewingStreamers, onToggleFavorite, onToggleNotifications, onClearAllData, onImportData }: OptionsModalProps) {
   const [editingStreamer, setEditingStreamer] = useState<Streamer | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'streamers'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'streamers' | 'filters' | 'stats'>('general');
   
   const animatedModalClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 400);
   const animatedCardClass = useAnimatedClassWithDuration('', 'animate__slideInUp', 600);
@@ -36,15 +38,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
   const heartIconClass = '';
   
   // Estado para configurações pendentes
-  const [pendingSettings, setPendingSettings] = useState({
-    maxViewers: maxViewers,
-    notifications: true,
-    animations: animationsEnabled,
-    autoRefresh: true,
-    refreshInterval: 30,
-    theme: 'dark' as 'dark' | 'light',
-    language: 'pt' as 'pt' | 'en'
-  });
+  const [pendingSettings, setPendingSettings] = useState<AppSettings>(settings);
   
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -54,14 +48,42 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
     kick: <Zap size={12} style={{ color: '#00ff00' }} />
   };
 
-  // Atualizar estado pendente quando maxViewers ou animationsEnabled mudarem externamente
+  // Atualizar estado pendente quando settings mudarem externamente
   useEffect(() => {
-    setPendingSettings(prev => ({ ...prev, maxViewers, animations: animationsEnabled }));
-  }, [maxViewers, animationsEnabled]);
+    setPendingSettings(settings);
+    setHasUnsavedChanges(false);
+  }, [settings, isOpen]);
 
   const handleSettingChange = (key: keyof typeof pendingSettings, value: string | number | boolean) => {
     setPendingSettings(prev => ({ ...prev, [key]: value }));
     setHasUnsavedChanges(true);
+    
+    // Mostrar toast de alteração pendente
+    const settingNames: Record<string, string> = {
+      maxViewers: 'Limite de Visualizadores',
+      notifications: 'Notificações',
+      animations: 'Animações',
+      autoRefresh: 'Atualização Automática',
+      refreshInterval: 'Intervalo de Atualização',
+      theme: 'Tema',
+      language: 'Idioma',
+      filterPlatform: 'Filtro de Plataforma',
+      filterStatus: 'Filtro de Status',
+      showOnlyFavorites: 'Mostrar Apenas Favoritos',
+      sortBy: 'Ordenação',
+      notificationSound: 'Som de Notificação',
+      desktopNotifications: 'Notificações Desktop',
+      notifyOnlyFavorites: 'Notificar Apenas Favoritos',
+      notificationVolume: 'Volume de Notificação',
+      compactMode: 'Modo Compacto',
+      gridLayout: 'Layout do Grid',
+      chatPosition: 'Posição do Chat'
+    };
+    
+    showSuccessToast(
+      'Configuração Alterada',
+      `${settingNames[key] || key} foi modificado. Clique em "Salvar" para aplicar.`
+    );
   };
 
   const handleSaveSettings = async () => {
@@ -91,19 +113,86 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
       return; // Usuário cancelou
     }
     
-    // Salvar o novo limite
-    onUpdateMaxViewers(newMaxViewers);
-    
-    // Salvar configuração de animações
-    onUpdateAnimations(pendingSettings.animations);
+    // Salvar todas as configurações
+    onUpdateSettings(pendingSettings);
     
     setHasUnsavedChanges(false);
     showSuccessToast('Configurações Guardadas', 'As suas configurações foram atualizadas com sucesso!');
   };
 
   const handleCancelChanges = () => {
-    setPendingSettings(prev => ({ ...prev, maxViewers, animations: animationsEnabled }));
+    setPendingSettings(settings);
     setHasUnsavedChanges(false);
+  };
+
+  const handleClose = async () => {
+    if (hasUnsavedChanges) {
+      const result = await confirmUnsavedChanges();
+      if (result.isConfirmed) {
+        // Usuário confirmou que quer sair sem salvar
+        handleCancelChanges();
+        onClose();
+      }
+      // Se cancelar, não faz nada (continua no modal)
+    } else {
+      // Não há alterações, pode fechar normalmente
+      onClose();
+    }
+  };
+
+  // Funções de Backup/Restore
+  const handleExportData = async () => {
+    const result = await confirmExportData();
+    if (result.isConfirmed) {
+      try {
+        await BackupService.exportData(streamers, settings);
+        showExportSuccess();
+      } catch (error) {
+        showSuccessToast('Erro', 'Erro ao exportar dados: ' + (error as Error).message);
+      }
+    }
+  };
+
+  const handleImportData = async () => {
+    const result = await confirmImportData();
+    if (result.isConfirmed) {
+      // Criar input de arquivo
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.style.display = 'none';
+      
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        try {
+          const { streamers: importedStreamers, settings: importedSettings } = await BackupService.importData(file);
+          onImportData(importedStreamers, importedSettings);
+          showImportSuccess(importedStreamers.length);
+        } catch (error) {
+          showSuccessToast('Erro', 'Erro ao importar dados: ' + (error as Error).message);
+        }
+      };
+
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    const result = await confirmClearAllData();
+    if (result.isConfirmed) {
+      try {
+        BackupService.clearAllData();
+        onClearAllData();
+        showClearSuccess();
+        onClose(); // Fechar modal após limpeza
+      } catch (error) {
+        showSuccessToast('Erro', 'Erro ao limpar dados: ' + (error as Error).message);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -124,18 +213,18 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
         zIndex: 1000,
         padding: '2rem'
       }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          borderRadius: '20px',
-          width: '100%',
-          maxWidth: '800px',
-          height: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          border: '1px solid rgba(147, 51, 234, 0.3)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-          overflow: 'hidden'
-        }} className={animatedModalClass}>
+               <div style={{
+                 background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                 borderRadius: '20px',
+                 width: '100%',
+                 maxWidth: '1000px',
+                 height: '90vh',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 border: '1px solid rgba(147, 51, 234, 0.3)',
+                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                 overflow: 'hidden'
+               }} className={animatedModalClass}>
           {/* Header Fixo */}
           <div style={{
             padding: '1.5rem 2rem 0 2rem',
@@ -187,26 +276,26 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'white',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-              >
-                <X size={20} />
-              </button>
+                    <button
+                      onClick={handleClose}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: 'white',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                    >
+                      <X size={20} />
+                    </button>
             </div>
 
             {/* Tabs */}
@@ -215,57 +304,111 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
               gap: '0.5rem',
               marginBottom: '-1px' // Cola os tabs ao fundo do header
             }}>
-              <button
-                onClick={() => setActiveTab('general')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  background: activeTab === 'general' 
-                    ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: 'none',
-                  borderRadius: '10px 10px 0 0',
-                  color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  borderBottom: activeTab === 'general' 
-                    ? '2px solid #9333ea'
-                    : '2px solid transparent'
-                }}
-              >
-                    <Sliders size={16} className={slidersIconClass} />
-                    Configurações Gerais
-              </button>
+                     <button
+                       onClick={() => setActiveTab('general')}
+                       style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem',
+                         padding: '0.75rem 1.5rem',
+                         background: activeTab === 'general' 
+                           ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
+                           : 'rgba(255, 255, 255, 0.05)',
+                         border: 'none',
+                         borderRadius: '10px 10px 0 0',
+                         color: 'white',
+                         fontSize: '0.875rem',
+                         fontWeight: '600',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         borderBottom: activeTab === 'general' 
+                           ? '2px solid #9333ea'
+                           : '2px solid transparent',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                           <Sliders size={16} className={slidersIconClass} />
+                           Configurações Gerais
+                     </button>
+                     
+                     <button
+                       onClick={() => setActiveTab('streamers')}
+                       style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem',
+                         padding: '0.75rem 1.5rem',
+                         background: activeTab === 'streamers' 
+                           ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
+                           : 'rgba(255, 255, 255, 0.05)',
+                         border: 'none',
+                         borderRadius: '10px 10px 0 0',
+                         color: 'white',
+                         fontSize: '0.875rem',
+                         fontWeight: '600',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         borderBottom: activeTab === 'streamers' 
+                           ? '2px solid #9333ea'
+                           : '2px solid transparent',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                           <Users size={16} className={usersIconClass} />
+                           Meus Streamers ({streamers.length})
+                     </button>
               
-              <button
-                onClick={() => setActiveTab('streamers')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  background: activeTab === 'streamers' 
-                    ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: 'none',
-                  borderRadius: '10px 10px 0 0',
-                  color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  borderBottom: activeTab === 'streamers' 
-                    ? '2px solid #9333ea'
-                    : '2px solid transparent'
-                }}
-              >
-                    <Users size={16} className={usersIconClass} />
-                    Meus Streamers ({streamers.length})
-              </button>
+                     <button
+                       onClick={() => setActiveTab('filters')}
+                       style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem',
+                         padding: '0.75rem 1.5rem',
+                         background: activeTab === 'filters' 
+                           ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
+                           : 'rgba(255, 255, 255, 0.05)',
+                         border: 'none',
+                         borderRadius: '10px 10px 0 0',
+                         color: 'white',
+                         fontSize: '0.875rem',
+                         fontWeight: '600',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         borderBottom: activeTab === 'filters' 
+                           ? '2px solid #9333ea'
+                           : '2px solid transparent',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                           🔍 Filtros e Visualização
+                     </button>
+                     
+                     <button
+                       onClick={() => setActiveTab('stats')}
+                       style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem',
+                         padding: '0.75rem 1.5rem',
+                         background: activeTab === 'stats' 
+                           ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
+                           : 'rgba(255, 255, 255, 0.05)',
+                         border: 'none',
+                         borderRadius: '10px 10px 0 0',
+                         color: 'white',
+                         fontSize: '0.875rem',
+                         fontWeight: '600',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         borderBottom: activeTab === 'stats' 
+                           ? '2px solid #9333ea'
+                           : '2px solid transparent',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                           📊 Estatísticas
+                     </button>
             </div>
           </div>
 
@@ -680,6 +823,804 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                       </button>
                     </div>
                   )}
+
+                  {/* Backup e Dados */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    marginTop: '1.5rem'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      💾 Backup e Dados
+                    </h4>
+                    
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '1rem',
+                      marginBottom: '1rem'
+                    }}>
+                      {/* Exportar */}
+                      <button
+                        onClick={handleExportData}
+                        style={{
+                          padding: '1rem',
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: '8px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.3) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                        }}
+                      >
+                        <div style={{ fontSize: '1.5rem' }}>📤</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>Exportar Dados</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Salvar backup
+                        </div>
+                      </button>
+
+                      {/* Importar */}
+                      <button
+                        onClick={handleImportData}
+                        style={{
+                          padding: '1rem',
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: '8px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.3) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        }}
+                      >
+                        <div style={{ fontSize: '1.5rem' }}>📥</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>Importar Dados</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Restaurar backup
+                        </div>
+                      </button>
+
+                      {/* Limpar Tudo */}
+                      <button
+                        onClick={handleClearAllData}
+                        style={{
+                          padding: '1rem',
+                          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: '8px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        }}
+                      >
+                        <div style={{ fontSize: '1.5rem' }}>🗑️</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>Limpar Tudo</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Reset completo
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Informações */}
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(59, 130, 246, 0.2)'
+                    }}>
+                      <div style={{
+                        fontSize: '0.875rem',
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        lineHeight: '1.5'
+                      }}>
+                        <strong style={{ color: '#3b82f6' }}>💡 Dicas:</strong>
+                        <ul style={{ margin: '0.5rem 0 0 1.5rem', padding: 0 }}>
+                          <li>Faça backup regularmente para não perder seus dados</li>
+                          <li>O arquivo de backup contém todos os streamers e configurações</li>
+                          <li>Importar substitui todos os dados atuais</li>
+                          <li>Limpar tudo é irreversível - faça backup antes!</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'filters' && (
+              <div>
+                <h3 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  color: 'white',
+                  margin: '0 0 1rem 0'
+                }}>
+                  Filtros e Visualização
+                </h3>
+                
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.5rem'
+                }}>
+                  {/* Filtro por Plataforma */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0'
+                    }}>
+                      🎯 Filtrar por Plataforma
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      {['all', 'twitch', 'kick'].map((platform) => (
+                        <button
+                          key={platform}
+                          onClick={() => handleSettingChange('filterPlatform', platform)}
+                          style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '8px',
+                            border: '2px solid',
+                            borderColor: pendingSettings.filterPlatform === platform 
+                              ? platform === 'twitch' ? '#9146ff' : platform === 'kick' ? '#00ff00' : '#9333ea'
+                              : 'rgba(255, 255, 255, 0.2)',
+                            background: pendingSettings.filterPlatform === platform 
+                              ? platform === 'twitch' ? 'rgba(145, 70, 255, 0.2)' : platform === 'kick' ? 'rgba(0, 255, 0, 0.2)' : 'rgba(147, 51, 234, 0.2)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          {platform === 'all' && '🌐 Todas'}
+                          {platform === 'twitch' && '🟣 Twitch'}
+                          {platform === 'kick' && '🟢 Kick'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Filtro por Status */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0'
+                    }}>
+                      📡 Filtrar por Status
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      {[
+                        { value: 'all', label: '🌐 Todos', color: '#9333ea' },
+                        { value: 'online', label: '🔴 Online', color: '#10b981' },
+                        { value: 'offline', label: '⚫ Offline', color: '#6b7280' }
+                      ].map((status) => (
+                        <button
+                          key={status.value}
+                          onClick={() => handleSettingChange('filterStatus', status.value)}
+                          style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '8px',
+                            border: '2px solid',
+                            borderColor: pendingSettings.filterStatus === status.value ? status.color : 'rgba(255, 255, 255, 0.2)',
+                            background: pendingSettings.filterStatus === status.value 
+                              ? `${status.color}33`
+                              : 'rgba(255, 255, 255, 0.05)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mostrar apenas Favoritos */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: '0 0 0.25rem 0'
+                        }}>
+                          ⭐ Mostrar Apenas Favoritos
+                        </h4>
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: 0
+                        }}>
+                          Exibir somente streamers marcados como favoritos
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleSettingChange('showOnlyFavorites', !pendingSettings.showOnlyFavorites)}
+                        style={{
+                          width: '48px',
+                          height: '24px',
+                          borderRadius: '12px',
+                          background: pendingSettings.showOnlyFavorites ? '#ef4444' : 'rgba(255, 255, 255, 0.2)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'white',
+                          position: 'absolute',
+                          top: '2px',
+                          left: pendingSettings.showOnlyFavorites ? '26px' : '2px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ordenação */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0'
+                    }}>
+                      📊 Ordenar Streamers Por
+                    </h4>
+                    <select
+                      value={pendingSettings.sortBy}
+                      onChange={(e) => handleSettingChange('sortBy', e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '8px',
+                        padding: '0.75rem',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="name" style={{ background: '#1a1a2e' }}>📝 Nome (A-Z)</option>
+                      <option value="status" style={{ background: '#1a1a2e' }}>🔴 Status (Online primeiro)</option>
+                      <option value="viewers" style={{ background: '#1a1a2e' }}>👥 Viewers (Maior primeiro)</option>
+                      <option value="platform" style={{ background: '#1a1a2e' }}>🎯 Plataforma</option>
+                    </select>
+                  </div>
+
+                  {/* Layout do Grid */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0'
+                    }}>
+                      📐 Layout do Grid
+                    </h4>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '0.75rem'
+                    }}>
+                      {[
+                        { value: 'auto', label: '🔄 Automático', icon: '⚡' },
+                        { value: '2x2', label: '2×2', icon: '🔲' },
+                        { value: '3x3', label: '3×3', icon: '🔳' },
+                        { value: '4x4', label: '4×4', icon: '⬛' }
+                      ].map((layout) => (
+                        <button
+                          key={layout.value}
+                          onClick={() => handleSettingChange('gridLayout', layout.value)}
+                          style={{
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            border: '2px solid',
+                            borderColor: pendingSettings.gridLayout === layout.value ? '#9333ea' : 'rgba(255, 255, 255, 0.2)',
+                            background: pendingSettings.gridLayout === layout.value 
+                              ? 'rgba(147, 51, 234, 0.2)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <span style={{ fontSize: '1.5rem' }}>{layout.icon}</span>
+                          <span>{layout.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Modo Compacto */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: '0 0 0.25rem 0'
+                        }}>
+                          📦 Modo Compacto
+                        </h4>
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: 0
+                        }}>
+                          Interface mais compacta com menos espaçamento
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleSettingChange('compactMode', !pendingSettings.compactMode)}
+                        style={{
+                          width: '48px',
+                          height: '24px',
+                          borderRadius: '12px',
+                          background: pendingSettings.compactMode ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'white',
+                          position: 'absolute',
+                          top: '2px',
+                          left: pendingSettings.compactMode ? '26px' : '2px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Posição do Chat */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <h4 style={{
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      margin: '0 0 1rem 0'
+                    }}>
+                      💬 Posição do Chat
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.75rem'
+                    }}>
+                      {[
+                        { value: 'right', label: '➡️ Direita' },
+                        { value: 'left', label: '⬅️ Esquerda' }
+                      ].map((position) => (
+                        <button
+                          key={position.value}
+                          onClick={() => handleSettingChange('chatPosition', position.value)}
+                          style={{
+                            flex: 1,
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '8px',
+                            border: '2px solid',
+                            borderColor: pendingSettings.chatPosition === position.value ? '#9333ea' : 'rgba(255, 255, 255, 0.2)',
+                            background: pendingSettings.chatPosition === position.value 
+                              ? 'rgba(147, 51, 234, 0.2)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {position.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação */}
+                  {hasUnsavedChanges && (
+                    <div style={{
+                      display: 'flex',
+                      gap: '1rem',
+                      justifyContent: 'flex-end',
+                      padding: '1rem',
+                      background: 'rgba(147, 51, 234, 0.1)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(147, 51, 234, 0.2)'
+                    }}>
+                      <button
+                        onClick={handleCancelChanges}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'rgba(107, 114, 128, 0.1)',
+                          border: '1px solid rgba(107, 114, 128, 0.2)',
+                          borderRadius: '8px',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.2)';
+                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.1)';
+                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.2)';
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleSaveSettings}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.6)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
+                        }}
+                      >
+                        💾 Salvar Configurações
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'stats' && (
+              <div>
+                <h3 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  color: 'white',
+                  margin: '0 0 1rem 0'
+                }}>
+                  Estatísticas
+                </h3>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '1.5rem'
+                }}>
+                  {/* Total de Streamers */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(147, 51, 234, 0.3)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      📺
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: 'white',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {streamers.length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }}>
+                      Total de Streamers
+                    </div>
+                  </div>
+
+                  {/* Streamers Online */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      🔴
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#10b981',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {streamers.filter(s => s.status === 'online').length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }}>
+                      Online Agora
+                    </div>
+                  </div>
+
+                  {/* Favoritos */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(239, 68, 68, 0.3)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      ⭐
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#ef4444',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {streamers.filter(s => s.isFavorite).length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }}>
+                      Favoritos
+                    </div>
+                  </div>
+
+                  {/* Assistindo */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      👁️
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#3b82f6',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {viewingStreamers.size}
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }}>
+                      Assistindo Agora
+                    </div>
+                  </div>
+                </div>
+
+                {/* Distribuição por Plataforma */}
+                <div style={{
+                  marginTop: '1.5rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }} className={animatedCardClass}>
+                  <h4 style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    margin: '0 0 1rem 0'
+                  }}>
+                    📊 Distribuição por Plataforma
+                  </h4>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                  }}>
+                    {/* Twitch */}
+                    <div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span style={{ color: '#9146ff', fontWeight: '600', fontSize: '0.875rem' }}>
+                          🟣 Twitch
+                        </span>
+                        <span style={{ color: 'white', fontWeight: '600', fontSize: '0.875rem' }}>
+                          {streamers.filter(s => s.platforms.twitch).length}
+                        </span>
+                      </div>
+                      <div style={{
+                        height: '8px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${(streamers.filter(s => s.platforms.twitch).length / Math.max(streamers.length, 1)) * 100}%`,
+                          background: 'linear-gradient(90deg, #9146ff 0%, #7c3aed 100%)',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Kick */}
+                    <div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span style={{ color: '#00ff00', fontWeight: '600', fontSize: '0.875rem' }}>
+                          🟢 Kick
+                        </span>
+                        <span style={{ color: 'white', fontWeight: '600', fontSize: '0.875rem' }}>
+                          {streamers.filter(s => s.platforms.kick).length}
+                        </span>
+                      </div>
+                      <div style={{
+                        height: '8px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${(streamers.filter(s => s.platforms.kick).length / Math.max(streamers.length, 1)) * 100}%`,
+                          background: 'linear-gradient(90deg, #00ff00 0%, #00cc00 100%)',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1019,29 +1960,36 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
             )}
           </div>
 
-          {/* Footer Fixo */}
-          <div style={{
-            padding: '1rem 2rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            background: 'rgba(147, 51, 234, 0.05)',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
+            {/* Footer Fixo */}
             <div style={{
-              fontSize: '0.75rem',
-              color: 'rgba(255, 255, 255, 0.6)'
+              padding: '1rem 2rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              background: hasUnsavedChanges ? 'rgba(239, 68, 68, 0.1)' : 'rgba(147, 51, 234, 0.05)',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'all 0.3s ease'
             }}>
-              💡 Use as tabs acima para navegar entre as configurações
+              <div style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255, 255, 255, 0.6)'
+              }}>
+                {hasUnsavedChanges ? (
+                  <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                    ⚠️ Alterações não guardadas! Clique em "Salvar" para aplicar.
+                  </span>
+                ) : (
+                  '💡 Use as tabs acima para navegar entre as configurações'
+                )}
+              </div>
+              <div style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255, 255, 255, 0.6)'
+              }}>
+                Total: {streamers.length} streamer{streamers.length !== 1 ? 's' : ''}
+              </div>
             </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'rgba(255, 255, 255, 0.6)'
-            }}>
-              Total: {streamers.length} streamer{streamers.length !== 1 ? 's' : ''}
-            </div>
-          </div>
         </div>
       </div>
 

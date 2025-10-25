@@ -1,5 +1,6 @@
 import { Trash2, Bell, Heart, Tv, Play, Zap } from 'lucide-react';
-import type { Streamer } from '../types';
+import type { Streamer, Platform } from '../types';
+import type { AppSettings } from '../types/settings';
 import { useAnimatedClass, useInfiniteAnimation } from '../hooks/useAnimatedClass';
 import { useAnimations } from '../hooks/useAnimations';
 import { confirmDeleteStreamer, showSuccessToast } from '../services/sweetAlert';
@@ -11,6 +12,7 @@ interface SidebarProps {
   viewingStreamers: Set<string>;
   onToggleFavorite: (id: string) => void;
   onToggleNotifications: (id: string) => void;
+  settings: AppSettings;
 }
 
 const platformIcons = {
@@ -25,7 +27,8 @@ export function Sidebar({
   onToggleViewing,
   viewingStreamers,
   onToggleFavorite,
-  onToggleNotifications
+  onToggleNotifications,
+  settings
 }: SidebarProps) {
   const { animationsEnabled } = useAnimations();
   const animatedCardClass = useAnimatedClass('', 'animate__fadeIn');
@@ -35,9 +38,52 @@ export function Sidebar({
   const heartIconClass = '';
   const onlineStatusClass = useInfiniteAnimation('', 'animate__pulse', 2000);
   
+  // Aplicar filtros
+  let filteredStreamers = streamers;
+  
+  // Filtro de favoritos
+  if (settings.showOnlyFavorites) {
+    filteredStreamers = filteredStreamers.filter(s => s.isFavorite);
+  }
+  
+  // Filtro de status
+  if (settings.filterStatus !== 'all') {
+    filteredStreamers = filteredStreamers.filter(s => s.status === settings.filterStatus);
+  }
+  
+  // Filtro de plataforma
+  if (settings.filterPlatform !== 'all') {
+    filteredStreamers = filteredStreamers.filter(s => {
+      const platform = settings.filterPlatform as Platform;
+      return s.platforms[platform] !== undefined && s.platforms[platform] !== '';
+    });
+  }
+  
+  // Ordenação
+  const sortedStreamers = [...filteredStreamers].sort((a, b) => {
+    switch (settings.sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'status':
+        if (a.status === 'online' && b.status === 'offline') return -1;
+        if (a.status === 'offline' && b.status === 'online') return 1;
+        return a.name.localeCompare(b.name);
+      case 'viewers':
+        const aViewers = a.streamInfo?.viewers || 0;
+        const bViewers = b.streamInfo?.viewers || 0;
+        return bViewers - aViewers;
+      case 'platform':
+        const aPlatform = Object.keys(a.platforms)[0] || '';
+        const bPlatform = Object.keys(b.platforms)[0] || '';
+        return aPlatform.localeCompare(bPlatform);
+      default:
+        return 0;
+    }
+  });
+  
   // Separar streamers por categoria
-  const favoriteStreamers = streamers.filter(streamer => streamer.isFavorite);
-  const nonFavoriteStreamers = streamers.filter(streamer => !streamer.isFavorite);
+  const favoriteStreamers = sortedStreamers.filter(streamer => streamer.isFavorite);
+  const nonFavoriteStreamers = sortedStreamers.filter(streamer => !streamer.isFavorite);
   
   // Dentro dos não-favoritos, separar por status
   const onlineStreamers = nonFavoriteStreamers.filter(streamer => streamer.status === 'online');

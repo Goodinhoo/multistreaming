@@ -1,9 +1,12 @@
 import type { Streamer, Platform } from '../types';
+import type { AppSettings } from '../types/settings';
+import { getKickPlayerUrl } from '../services/kickApi';
 
 interface StreamGridProps {
   streamers: Streamer[];
   selectedStreamer?: Streamer;
   viewingStreamers: Set<string>;
+  settings: AppSettings;
 }
 
 // Função para gerar URLs de embed dos streams
@@ -15,18 +18,30 @@ const getStreamEmbedUrl = (platform: Platform, channelId: string): string => {
     case 'youtube':
       return `https://www.youtube.com/embed/${channelId}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0`;
     case 'kick':
-      return `https://kick.com/${channelId}/embed`;
+      return getKickPlayerUrl(channelId);
     default:
       return '';
   }
 };
 
-export function StreamGrid({ streamers, selectedStreamer, viewingStreamers }: StreamGridProps) {
+export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, settings }: StreamGridProps) {
   // Filtrar apenas streamers que estão sendo visualizados
   const activeStreamers = streamers.filter(s => viewingStreamers.has(s.id));
   
-  // Calcular layout dinâmico baseado no número de streamers ativos
-  const getGridLayout = (count: number) => {
+  // Calcular layout baseado nas configurações
+  const getGridLayout = (count: number, gridLayout: string) => {
+    // Se o usuário escolheu um layout específico
+    if (gridLayout !== 'auto') {
+      const layoutMap: Record<string, number> = {
+        '2x2': 2,
+        '3x3': 3,
+        '4x4': 4
+      };
+      const columns = layoutMap[gridLayout] || 2;
+      return { columns, height: `${100 / columns}%` };
+    }
+    
+    // Layout automático baseado no número de streamers
     if (count === 0) return { columns: 1, height: '100%' };
     if (count === 1) return { columns: 1, height: '100%' };
     if (count === 2) return { columns: 2, height: '50%' };
@@ -35,7 +50,7 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers }: St
     return { columns: Math.ceil(Math.sqrt(count)), height: `${100 / Math.ceil(Math.sqrt(count))}%` };
   };
 
-  const layout = getGridLayout(activeStreamers.length);
+  const layout = getGridLayout(activeStreamers.length, settings.gridLayout);
 
   return (
     <div style={{

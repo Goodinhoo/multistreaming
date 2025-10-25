@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Streamer } from '../types';
+import { getKickChatUrl } from '../services/kickApi';
+import { KickChatEmbed } from './KickChatEmbed';
 
 interface ChatPanelProps {
   streamers: Streamer[];
@@ -16,10 +18,32 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
 
   // Definir streamer ativo inicial
   useEffect(() => {
-    if (activeStreamers.length > 0 && !activeStreamerId) {
-      setActiveStreamerId(activeStreamers[0].id);
+    if (activeStreamers.length > 0) {
+      if (!activeStreamerId) {
+        setActiveStreamerId(activeStreamers[0].id);
+      } else if (!activeStreamers.some(s => s.id === activeStreamerId)) {
+        setActiveStreamerId(activeStreamers[0].id);
+      }
+    } else {
+      setActiveStreamerId(null);
     }
   }, [activeStreamers, activeStreamerId]);
+
+  // Definir aba ativa inicial baseada no streamer ativo
+  useEffect(() => {
+    if (activeStreamerId && activeStreamers.length > 0) {
+      const currentStreamer = activeStreamers.find(s => s.id === activeStreamerId);
+      if (currentStreamer) {
+        const platforms = Object.entries(currentStreamer.platforms)
+          .filter(([, channelId]) => channelId && channelId.trim() !== '')
+          .map(([platform]) => platform as 'twitch' | 'youtube' | 'kick');
+        
+        if (platforms.length > 0 && !platforms.includes(activeTab)) {
+          setActiveTab(platforms[0]);
+        }
+      }
+    }
+  }, [activeStreamerId, activeStreamers, activeTab]);
 
   // Se não há streamers sendo visualizados, mostrar mensagem
   if (activeStreamers.length === 0) {
@@ -74,11 +98,6 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
     );
   }
 
-  // Se a aba ativa não está disponível, mudar para a primeira disponível
-  if (!activePlatforms.includes(activeTab)) {
-    setActiveTab(activePlatforms[0]);
-  }
-
   const getChatUrl = (platform: 'twitch' | 'youtube' | 'kick', channelId: string) => {
     switch (platform) {
       case 'twitch':
@@ -86,7 +105,7 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
       case 'youtube':
         return `https://www.youtube.com/live_chat?v=${channelId}&embed_domain=localhost&theme=dark`;
       case 'kick':
-        return `https://kick.com/embed/chat/${channelId}?theme=dark`;
+        return getKickChatUrl(channelId);
       default:
         return '';
     }
@@ -125,16 +144,39 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
-      {/* Tabs dos streamers - só mostrar se há mais de um streamer */}
+      {/* Indicador de múltiplos chats */}
+      {activeStreamers.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          top: '0.5rem',
+          right: '0.5rem',
+          zIndex: 20,
+          background: 'rgba(147, 51, 234, 0.9)',
+          color: 'white',
+          padding: '0.25rem 0.5rem',
+          borderRadius: '12px',
+          fontSize: '0.7rem',
+          fontWeight: '600',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+        }}>
+          {activeStreamers.length} chats
+        </div>
+      )}
+      {/* Tabs dos streamers - sempre mostrar quando há múltiplos */}
       {activeStreamers.length > 1 && (
         <div style={{
           display: 'flex',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           padding: '0.5rem',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          overflowX: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(147, 51, 234, 0.5) transparent'
         }}>
           {activeStreamers.map((streamer) => (
             <button
@@ -151,7 +193,9 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 borderBottom: activeStreamerId === streamer.id ? `2px solid ${streamer.status === 'online' ? '#10b981' : '#6b7280'}` : '2px solid transparent',
-                position: 'relative'
+                position: 'relative',
+                minWidth: '60px',
+                flexShrink: 0
               }}
               onMouseOver={(e) => {
                 if (activeStreamerId !== streamer.id) {
@@ -193,21 +237,75 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
         </div>
       )}
 
-      {/* Header com nome do streamer */}
+      {/* Header com informações do streamer */}
       <div style={{
-        padding: '1rem',
+        padding: '0.75rem 1rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backgroundColor: 'rgba(0, 0, 0, 0.2)'
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0
       }}>
-        <h3 style={{
-          color: 'white',
-          fontSize: '1rem',
-          fontWeight: '600',
-          margin: 0,
-          textAlign: 'center'
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img
+            src={currentStreamer.avatar}
+            alt={currentStreamer.name}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid rgba(255, 255, 255, 0.1)'
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/6B7280/FFFFFF?text=?';
+            }}
+          />
+          <div>
+            <h3 style={{
+              color: 'white',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              margin: 0,
+              lineHeight: '1.2'
+            }}>
+              {currentStreamer.name}
+            </h3>
+            {activeStreamers.length > 1 && (
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.75rem',
+                margin: 0,
+                lineHeight: '1.2'
+              }}>
+                {activeStreamers.findIndex(s => s.id === activeStreamerId) + 1} de {activeStreamers.length}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        {/* Indicador de status */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
         }}>
-          {currentStreamer.name}
-        </h3>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: currentStreamer.status === 'online' ? '#10b981' : '#6b7280',
+            animation: currentStreamer.status === 'online' ? 'pulse 2s infinite' : 'none'
+          }} />
+          <span style={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '0.75rem',
+            fontWeight: '500'
+          }}>
+            {currentStreamer.status === 'online' ? 'Ao vivo' : 'Offline'}
+          </span>
+        </div>
       </div>
 
       {/* Tabs das plataformas - só mostrar se há mais de uma plataforma */}
@@ -215,7 +313,8 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
         <div style={{
           display: 'flex',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          flexShrink: 0
         }}>
           {activePlatforms.map((platform) => (
             <button
@@ -223,17 +322,17 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
               onClick={() => setActiveTab(platform)}
               style={{
                 flex: 1,
-                padding: '0.75rem',
+                padding: '0.5rem 0.75rem',
                 backgroundColor: activeTab === platform ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                 border: 'none',
                 color: activeTab === platform ? 'white' : 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.8rem',
+                fontSize: '0.75rem',
                 fontWeight: '500',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.5rem',
+                gap: '0.4rem',
                 transition: 'all 0.2s ease',
                 borderBottom: activeTab === platform ? `2px solid ${getPlatformColor(platform)}` : '2px solid transparent'
               }}
@@ -250,14 +349,14 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
                 }
               }}
             >
-              <span>{getPlatformIcon(platform)}</span>
+              <span style={{ fontSize: '0.9rem' }}>{getPlatformIcon(platform)}</span>
               <span style={{ textTransform: 'capitalize' }}>{platform}</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Chat iframe */}
+      {/* Chat iframe - Todos os chats são carregados mas apenas o ativo é mostrado */}
       <div style={{
         flex: 1,
         position: 'relative',
@@ -274,6 +373,29 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
             
             if (!channelId) return null;
 
+            // Para Kick, usar componente especial que lida com CSRF
+            if (platform === 'kick') {
+              return (
+                <div
+                  key={`${streamer.id}-${platform}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    display: isActive ? 'block' : 'none',
+                    zIndex: isActive ? 10 : 1
+                  }}
+                >
+                  <KickChatEmbed
+                    channel={channelId}
+                    streamerName={streamer.name}
+                  />
+                </div>
+              );
+            }
+
             return (
               <iframe
                 key={`${streamer.id}-${platform}`}
@@ -286,7 +408,8 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  display: isActive ? 'block' : 'none'
+                  display: isActive ? 'block' : 'none',
+                  zIndex: isActive ? 10 : 1
                 }}
                 title={`${streamer.name} - ${platform} chat`}
               />

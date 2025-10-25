@@ -144,7 +144,7 @@ export function Footer() {
               color: 'rgba(255, 255, 255, 0.6)',
               margin: '0 0 0.25rem 0'
             }}>
-              © 2024 Multistream Hub
+              © 2025 Multistream Hub
             </p>
             <p style={{
               fontSize: '0.75rem',

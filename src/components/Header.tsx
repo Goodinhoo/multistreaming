@@ -4,9 +4,10 @@ import { useAnimatedClassWithDuration, useHoverAnimation, useInfiniteAnimation }
 interface HeaderProps {
   onAddStreamer: () => void;
   onOpenOptions: () => void;
+  onOpenDashboard: () => void;
 }
 
-export function Header({ onAddStreamer, onOpenOptions }: HeaderProps) {
+export function Header({ onAddStreamer, onOpenOptions, onOpenDashboard }: HeaderProps) {
   const animatedLogoClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 500);
   const dashboardIconClass = useHoverAnimation('', 'icon-hover-tada');
   const settingsIconClass = useHoverAnimation('', 'icon-hover-jello');
@@ -80,6 +81,7 @@ export function Header({ onAddStreamer, onOpenOptions }: HeaderProps) {
       }}>
         {/* Botão Dashboard */}
         <button
+          onClick={onOpenDashboard}
           style={{
             display: 'flex',
             alignItems: 'center',
