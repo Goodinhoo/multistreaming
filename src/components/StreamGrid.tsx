@@ -1,12 +1,15 @@
+import { useState, useEffect, useMemo } from 'react';
 import type { Streamer, Platform } from '../types';
 import type { AppSettings } from '../types/settings';
 import { getKickPlayerUrl } from '../services/kickApi';
+import { getStreamInfo, getTwitchStreamData, getKickStreamData } from '../services/api';
 
 interface StreamGridProps {
   streamers: Streamer[];
   selectedStreamer?: Streamer;
   viewingStreamers: Set<string>;
   settings: AppSettings;
+  onToggleViewing?: (streamerId: string) => void;
 }
 
 // Função para gerar URLs de embed dos streams
@@ -24,9 +27,154 @@ const getStreamEmbedUrl = (platform: Platform, channelId: string): string => {
   }
 };
 
-export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, settings }: StreamGridProps) {
+export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, settings, onToggleViewing }: StreamGridProps) {
+  // Estado para controlar qual plataforma está ativa para cada streamer
+  const [activePlatforms, setActivePlatforms] = useState<Record<string, Platform>>({});
+  
+  // Estado para armazenar informações de stream por plataforma
+  const [platformStreamInfo, setPlatformStreamInfo] = useState<Record<string, {
+    platform: Platform;
+    title: string;
+    game: string;
+    viewers: number;
+    thumbnail: string;
+  }>>({});
+  
   // Filtrar apenas streamers que estão sendo visualizados
   const activeStreamers = streamers.filter(s => viewingStreamers.has(s.id));
+  
+  // Memoizar IDs dos streamers ativos e suas plataformas
+  const streamerPlatformsKey = useMemo(() => {
+    return activeStreamers.map(s => 
+      `${s.id}-${s.platforms.twitch || ''}-${s.platforms.kick || ''}-${s.platforms.youtube || ''}`
+    ).join('|');
+  }, [activeStreamers]);
+  
+  // Inicializar plataforma ativa com prioridade: Twitch > Kick > YouTube
+  useEffect(() => {
+    const newActivePlatforms: Record<string, Platform> = {};
+    activeStreamers.forEach(streamer => {
+      // Se já tem uma plataforma ativa definida, mantém
+      if (activePlatforms[streamer.id]) {
+        return;
+      }
+      
+      // Prioridade: Twitch primeiro, depois Kick, depois YouTube
+      if (streamer.platforms.twitch && streamer.platforms.twitch.trim() !== '') {
+        newActivePlatforms[streamer.id] = 'twitch';
+      } else if (streamer.platforms.kick && streamer.platforms.kick.trim() !== '') {
+        newActivePlatforms[streamer.id] = 'kick';
+      } else if (streamer.platforms.youtube && streamer.platforms.youtube.trim() !== '') {
+        newActivePlatforms[streamer.id] = 'youtube';
+      } else if (streamer.streamInfo?.platform) {
+        // Fallback para streamInfo se não tiver plataformas configuradas
+        newActivePlatforms[streamer.id] = streamer.streamInfo.platform;
+      }
+    });
+    
+    // Só atualiza se houver novas plataformas para inicializar
+    if (Object.keys(newActivePlatforms).length > 0) {
+      setActivePlatforms(prev => ({ ...prev, ...newActivePlatforms }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamerPlatformsKey]);
+  
+  // Função para buscar informações da plataforma específica
+  const fetchPlatformInfo = async (streamer: Streamer, platform: Platform) => {
+    const channelId = streamer.platforms[platform];
+    if (!channelId) return;
+    
+    const key = `${streamer.id}-${platform}`;
+    
+    try {
+      let streamInfo = null;
+      
+      if (platform === 'twitch') {
+        const data = await getTwitchStreamData(channelId);
+        streamInfo = data.streamInfo;
+      } else if (platform === 'kick') {
+        const data = await getKickStreamData(channelId);
+        streamInfo = data.streamInfo;
+      } else {
+        streamInfo = await getStreamInfo(platform, channelId);
+      }
+      
+      if (streamInfo) {
+        setPlatformStreamInfo(prev => ({
+          ...prev,
+          [key]: streamInfo!
+        }));
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar info de ${platform}:`, error);
+    }
+  };
+  
+  // Função para trocar plataforma
+  const handlePlatformSwitch = async (streamerId: string, platform: Platform) => {
+    setActivePlatforms(prev => ({ ...prev, [streamerId]: platform }));
+    
+    // Buscar informações da nova plataforma
+    const streamer = activeStreamers.find(s => s.id === streamerId);
+    if (streamer) {
+      await fetchPlatformInfo(streamer, platform);
+    }
+  };
+  
+  // Memoizar streamer IDs para evitar recálculos
+  const streamerIdsKey = useMemo(() => {
+    return activeStreamers.map(s => s.id).join(',');
+  }, [activeStreamers]);
+  
+  // Buscar informações quando a plataforma ativa mudar ou quando streamer é adicionado
+  useEffect(() => {
+    activeStreamers.forEach(streamer => {
+      const activePlatform = activePlatforms[streamer.id];
+      if (activePlatform) {
+        const key = `${streamer.id}-${activePlatform}`;
+        // Só busca se não tiver cache
+        if (!platformStreamInfo[key]) {
+          fetchPlatformInfo(streamer, activePlatform);
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePlatforms, streamerIdsKey]);
+  
+  // Função para obter plataformas disponíveis (que têm channelId configurado e não vazio)
+  const getAvailablePlatforms = (streamer: Streamer): Platform[] => {
+    const available: Platform[] = [];
+    if (streamer.platforms.twitch && streamer.platforms.twitch.trim() !== '') {
+      available.push('twitch');
+    }
+    if (streamer.platforms.kick && streamer.platforms.kick.trim() !== '') {
+      available.push('kick');
+    }
+    if (streamer.platforms.youtube && streamer.platforms.youtube.trim() !== '') {
+      available.push('youtube');
+    }
+    return available;
+  };
+  
+  // Função para obter o nome formatado da plataforma
+  const getPlatformName = (platform: Platform): string => {
+    switch (platform) {
+      case 'twitch': return 'Twitch';
+      case 'kick': return 'Kick';
+      case 'youtube': return 'YouTube';
+      default: return 'Live';
+    }
+  };
+  
+  // Função para obter a cor da plataforma
+  const getPlatformColor = (platform: Platform): string => {
+    switch (platform) {
+      case 'twitch': return '#9146ff';
+      case 'kick': return '#00ff00';
+      case 'youtube': return '#ff0000';
+      default: return '#10b981';
+    }
+  };
   
   // Calcular layout baseado nas configurações
   const getGridLayout = (count: number, gridLayout: string) => {
@@ -216,10 +364,11 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                     {streamer.platformCount} plataforma{streamer.platformCount !== 1 ? 's' : ''}
                   </div>
 
-                  {streamer.status === 'online' && streamer.streamInfo ? (
+                  {streamer.status === 'online' && activePlatforms[streamer.id] && streamer.platforms[activePlatforms[streamer.id]] ? (
                     <>
                       <iframe
-                        src={getStreamEmbedUrl(streamer.streamInfo.platform, streamer.platforms[streamer.streamInfo.platform]!)}
+                        key={`${streamer.id}-${activePlatforms[streamer.id]}`}
+                        src={getStreamEmbedUrl(activePlatforms[streamer.id], streamer.platforms[activePlatforms[streamer.id]]!)}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -232,7 +381,7 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                         frameBorder="0"
                         scrolling="no"
-                        title={`${streamer.name} - ${streamer.streamInfo.platform} stream`}
+                        title={`${streamer.name} - ${activePlatforms[streamer.id]} stream`}
                         onLoad={() => {
                           // Esconder loading quando iframe carregar
                           const loadingElement = document.getElementById(`loading-${streamer.id}`);
@@ -328,23 +477,32 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                   borderTop: '1px solid rgba(255, 255, 255, 0.1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  position: 'relative'
                 }}>
                   {/* Stream Title */}
-                  {streamer.streamInfo?.title && (
-                    <h3 style={{
-                      fontSize: '0.8rem', // Reduzido de 0.9rem para 0.8rem
-                      color: 'white',
-                      fontWeight: '600',
-                      margin: '0 0 0.5rem 0',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      lineHeight: '1.2' // Adicionado line-height para melhor espaçamento
-                    }}>
-                      {streamer.streamInfo.title}
-                    </h3>
-                  )}
+                  {(() => {
+                    const activePlatform = activePlatforms[streamer.id];
+                    const platformKey = activePlatform ? `${streamer.id}-${activePlatform}` : null;
+                    const currentStreamInfo = platformKey && platformStreamInfo[platformKey] 
+                      ? platformStreamInfo[platformKey] 
+                      : streamer.streamInfo;
+                    
+                    return currentStreamInfo?.title ? (
+                      <h3 style={{
+                        fontSize: '0.8rem',
+                        color: 'white',
+                        fontWeight: '600',
+                        margin: '0 0 0.5rem 0',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        lineHeight: '1.2'
+                      }}>
+                        {currentStreamInfo.title}
+                      </h3>
+                    ) : null;
+                  })()}
                   
                   {/* Viewers e Game */}
                   <div style={{
@@ -359,65 +517,160 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                       gap: '1.5rem',
                       flexWrap: 'wrap'
                     }}>
-                      {streamer.streamInfo?.viewers && (
-                        <span style={{
-                          fontSize: '0.875rem',
-                          color: '#10b981',
-                          fontWeight: '600',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}>
-                          <div style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: '#10b981',
-                            animation: 'pulse 2s infinite'
-                          }} />
-                          {streamer.streamInfo.viewers.toLocaleString()} viewers
-                        </span>
-                      )}
-                      
-                      {streamer.streamInfo?.game && (
-                        <span style={{
-                          fontSize: '0.875rem',
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          fontWeight: '500',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}>
-                          🎮 {streamer.streamInfo.game}
-                        </span>
-                      )}
+                      {(() => {
+                        const activePlatform = activePlatforms[streamer.id];
+                        const platformKey = activePlatform ? `${streamer.id}-${activePlatform}` : null;
+                        const currentStreamInfo = platformKey && platformStreamInfo[platformKey] 
+                          ? platformStreamInfo[platformKey] 
+                          : streamer.streamInfo;
+                        
+                        return (
+                          <>
+                            {currentStreamInfo?.viewers !== undefined && currentStreamInfo.viewers > 0 && (
+                              <span style={{
+                                fontSize: '0.875rem',
+                                color: '#10b981',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                <div style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#10b981',
+                                  animation: 'pulse 2s infinite'
+                                }} />
+                                {currentStreamInfo.viewers.toLocaleString()} viewers
+                              </span>
+                            )}
+                            
+                            {currentStreamInfo?.game && (
+                              <span style={{
+                                fontSize: '0.875rem',
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                fontWeight: '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                🎮 {currentStreamInfo.game}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     
-                    {/* Platform Indicator */}
+                    {/* Plataformas e Botão X */}
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem 0.75rem',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '20px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                      gap: '0.5rem'
                     }}>
-                      <div style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: '#10b981',
-                        animation: 'pulse 1.5s infinite'
-                      }} />
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: 'white',
-                        fontWeight: '600',
-                        textTransform: 'uppercase'
-                      }}>
-                        {streamer.streamInfo?.platform || 'Live'}
-                      </span>
+                      {/* Botões de Plataforma */}
+                      {getAvailablePlatforms(streamer).map((platform) => {
+                        const isActive = activePlatforms[streamer.id] === platform;
+                        return (
+                          <button
+                            key={platform}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlatformSwitch(streamer.id, platform);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.4rem 0.75rem',
+                              background: isActive 
+                                ? `rgba(${platform === 'twitch' ? '145, 70, 255' : platform === 'kick' ? '0, 255, 0' : '255, 0, 0'}, 0.3)`
+                                : 'rgba(255, 255, 255, 0.1)',
+                              borderRadius: '20px',
+                              border: isActive
+                                ? `1px solid ${getPlatformColor(platform)}`
+                                : '1px solid rgba(255, 255, 255, 0.2)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              fontSize: '0.75rem',
+                              color: 'white',
+                              fontWeight: '600',
+                              textTransform: 'capitalize'
+                            }}
+                            onMouseOver={(e) => {
+                              if (!isActive) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (!isActive) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                              }
+                            }}
+                            title={`Trocar para ${getPlatformName(platform)}`}
+                          >
+                            <div style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: isActive ? getPlatformColor(platform) : '#10b981',
+                              animation: isActive ? 'pulse 1.5s infinite' : 'none'
+                            }} />
+                            {getPlatformName(platform)}
+                          </button>
+                        );
+                      })}
+                      
+                      {/* Botão X para fechar */}
+                      {onToggleViewing && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleViewing(streamer.id);
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.25)',
+                            border: '1.5px solid rgba(239, 68, 68, 0.5)',
+                            borderRadius: '8px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: '1.25rem',
+                            fontWeight: '700',
+                            transition: 'all 0.2s ease',
+                            padding: 0,
+                            flexShrink: 0,
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)',
+                            backdropFilter: 'blur(10px)',
+                            lineHeight: '1',
+                            margin: 0
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = '#ef4444';
+                            e.currentTarget.style.borderColor = '#dc2626';
+                            e.currentTarget.style.transform = 'scale(1.08)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.2)';
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          title="Fechar stream"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

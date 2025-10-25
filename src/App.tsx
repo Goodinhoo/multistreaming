@@ -357,6 +357,12 @@ function App() {
             selectedStreamer={selectedStreamers[0]}
             viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
             settings={settings}
+            onToggleViewing={(streamerId) => {
+              const streamer = streamers.find(s => s.id === streamerId);
+              if (streamer) {
+                handleToggleViewing(streamer);
+              }
+            }}
           />
         </div>
         
