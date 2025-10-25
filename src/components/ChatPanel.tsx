@@ -99,11 +99,13 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
   }
 
   const getChatUrl = (platform: 'twitch' | 'youtube' | 'kick', channelId: string) => {
+    const currentHost = window.location.hostname;
     switch (platform) {
       case 'twitch':
-        return `https://www.twitch.tv/embed/${channelId}/chat?parent=localhost&darkpopout=true&theme=dark&color=#9146FF`;
+        // Usar o mesmo padrão do código que funciona: parent com hostname atual
+        return `https://www.twitch.tv/embed/${channelId}/chat?parent=${currentHost}&darkpopout=true&theme=dark&color=#9146FF`;
       case 'youtube':
-        return `https://www.youtube.com/live_chat?v=${channelId}&embed_domain=localhost&theme=dark`;
+        return `https://www.youtube.com/live_chat?v=${channelId}&embed_domain=${currentHost}&theme=dark`;
       case 'kick':
         return getKickChatUrl(channelId);
       default:
