@@ -25,7 +25,7 @@ interface OptionsModalProps {
 
 export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onRemoveStreamer, settings, onUpdateSettings, viewingStreamers, onUpdateViewingStreamers, onToggleFavorite, onToggleNotifications, onClearAllData, onImportData }: OptionsModalProps) {
   const [editingStreamer, setEditingStreamer] = useState<Streamer | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'streamers' | 'filters' | 'stats'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'streamers' | 'filters' | 'stats' | 'updates'>('general');
   
   const animatedModalClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 400);
   const animatedCardClass = useAnimatedClassWithDuration('', 'animate__slideInUp', 600);
@@ -447,6 +447,32 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                        }}
                      >
                            📊 Estatísticas
+                     </button>
+                     
+                     <button
+                       onClick={() => setActiveTab('updates')}
+                       style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem',
+                         padding: '0.75rem 1.5rem',
+                         background: activeTab === 'updates' 
+                           ? 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)'
+                           : 'rgba(255, 255, 255, 0.05)',
+                         border: 'none',
+                         borderRadius: '10px 10px 0 0',
+                         color: 'white',
+                         fontSize: '0.875rem',
+                         fontWeight: '600',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         borderBottom: activeTab === 'updates' 
+                           ? '2px solid #9333ea'
+                           : '2px solid transparent',
+                         whiteSpace: 'nowrap'
+                       }}
+                     >
+                           📝 Atualizações
                      </button>
             </div>
           </div>
@@ -2242,6 +2268,393 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'updates' && (
+              <div>
+                <h3 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  color: 'white',
+                  margin: '0 0 1rem 0'
+                }}>
+                  📝 Últimas Atualizações
+                </h3>
+                
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  {/* Atualização mais recente */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(147, 51, 234, 0.3)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>🆕</span>
+                      <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Correções no Chat da Twitch
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Tema escuro nativo aplicado ao chat</li>
+                      <li>Correção para permitir envio de mensagens</li>
+                      <li>Largura padrão do chat ajustada para 350px</li>
+                      <li>Largura padrão da sidebar ajustada para 350px</li>
+                    </ul>
+                  </div>
+
+                  {/* Layout Responsivo */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>📱</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Layout Responsivo
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Cards de streamers: 2 colunas em 1920px</li>
+                      <li>Cards de streamers: 3 colunas em 3440px</li>
+                      <li>Modal de opções ajustável por resolução</li>
+                    </ul>
+                  </div>
+
+                  {/* Sistema de Notificações */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>🔔</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Sistema de Notificações
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Notificações de desktop</li>
+                      <li>Sons personalizados de notificação</li>
+                      <li>Volume configurável</li>
+                      <li>Opção "notificar apenas favoritos"</li>
+                    </ul>
+                  </div>
+
+                  {/* Colunas Redimensionáveis */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>📐</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Colunas Redimensionáveis
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Arraste para redimensionar sidebar e chat</li>
+                      <li>Botões de reset para voltar ao padrão</li>
+                      <li>Toggle para ocultar/mostrar colunas</li>
+                      <li>Coluna de streams sempre centralizada</li>
+                    </ul>
+                  </div>
+
+                  {/* Dashboard e Estatísticas */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>📊</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Dashboard e Estatísticas
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Visualização de estatísticas gerais</li>
+                      <li>Top 5 streamers mais assistidos</li>
+                      <li>Cálculo de viewers por plataforma</li>
+                      <li>Estatísticas detalhadas na aba de opções</li>
+                    </ul>
+                  </div>
+
+                  {/* Visualizador de Streams */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>📺</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Visualizador de Streams
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Botão X para fechar stream</li>
+                      <li>Troca de plataformas (Twitch, YouTube, Kick)</li>
+                      <li>Viewers individuais por plataforma</li>
+                      <li>Modais informativos no footer</li>
+                    </ul>
+                  </div>
+
+                  {/* Multistreaming com Kick */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>🟢</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Suporte Multiplataforma
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          25/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Suporte completo para Twitch e Kick</li>
+                      <li>YouTube brevemente</li>
+                      <li>Chat simultâneo de múltiplas plataformas</li>
+                      <li>ChatPanel otimizado com abas</li>
+                      <li>Troca dinâmica entre plataformas</li>
+                    </ul>
+                  </div>
+
+                  {/* Backup e Restore */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>💾</span>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Backup e Restore
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          25/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Exportar dados em JSON</li>
+                      <li>Importar backup de dados</li>
+                      <li>Limpar todos os dados</li>
+                      <li>Salvamento automático no navegador</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
           </div>
