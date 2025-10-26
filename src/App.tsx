@@ -632,10 +632,10 @@ function App() {
         {settings.chatPosition === 'left' && chatVisible && (
           <div style={{ 
             display: 'flex',
-            width: `${chatWidth}px`,
+            width: selectedStreamers.length > 1 ? `${chatWidth + 60}px` : `${chatWidth}px`,
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            minWidth: 250,
+            minWidth: selectedStreamers.length > 1 ? 310 : 250,
             maxWidth: 600
           }}>
             {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
@@ -1146,10 +1146,10 @@ function App() {
         {settings.chatPosition === 'right' && chatVisible && (
           <div style={{ 
             display: 'flex',
-            width: `${chatWidth}px`,
+            width: selectedStreamers.length > 1 ? `${chatWidth + 60}px` : `${chatWidth}px`,
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            minWidth: 250,
+            minWidth: selectedStreamers.length > 1 ? 310 : 250,
             maxWidth: 600
           }}>
             {/* ChatPanel */}
