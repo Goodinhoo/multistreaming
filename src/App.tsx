@@ -602,9 +602,7 @@ function App() {
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600,
-            animation: chatVisible ? 'slideInLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
-            animationFillMode: 'both'
+            maxWidth: 600
           }}>
             {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
             <div 
@@ -786,9 +784,7 @@ function App() {
             position: 'relative',
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600,
-            animation: sidebarVisible ? 'slideInLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
-            animationFillMode: 'both'
+            maxWidth: 600
       }}>
         <Sidebar 
           streamers={streamers}
@@ -966,9 +962,7 @@ function App() {
             position: 'relative',
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600,
-            animation: sidebarVisible ? 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
-            animationFillMode: 'both'
+            maxWidth: 600
           }}>
             <Sidebar 
               streamers={streamers}
@@ -1118,9 +1112,7 @@ function App() {
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600,
-            animation: chatVisible ? 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
-            animationFillMode: 'both'
+            maxWidth: 600
           }}>
             {/* ChatPanel */}
             <div style={{ 
@@ -1130,10 +1122,10 @@ function App() {
               overflow: 'hidden',
               transition: isResizing === 'chat' ? 'none' : 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }}>
-              <ChatPanel 
-                streamers={streamers}
-                selectedStreamer={selectedStreamers[0]}
-                viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+          <ChatPanel 
+            streamers={streamers}
+            selectedStreamer={selectedStreamers[0]}
+            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
                 activeChatStreamerId={activeChatStreamerId}
                 onActiveChatStreamerChange={setActiveChatStreamerId}
                 renderAvatarsInSidebar={true}
