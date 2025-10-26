@@ -576,7 +576,8 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                             e.stopPropagation();
                             const wasEnabled = streamer.notificationsEnabled;
                             onToggleNotifications(streamer.id);
-                            showSuccessToast('Notificações', `Notificações para ${streamer.name} foram ${!wasEnabled ? 'ativadas' : 'desativadas'}!`);
+                            // Mostrar toast com o valor ANTES do toggle
+                            showSuccessToast('Notificações', `Notificações para ${streamer.name} foram ${wasEnabled ? 'desativadas' : 'ativadas'}!`);
                           }}
                           style={{
                             background: streamer.notificationsEnabled 
@@ -634,7 +635,8 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                             e.stopPropagation();
                             const wasFavorite = streamer.isFavorite;
                             onToggleFavorite(streamer.id);
-                            showSuccessToast('Favoritos', `${streamer.name} foi ${!wasFavorite ? 'adicionado aos' : 'removido dos'} favoritos!`);
+                            // Mostrar toast com o valor ANTES do toggle
+                            showSuccessToast('Favoritos', `${streamer.name} foi ${wasFavorite ? 'removido dos' : 'adicionado aos'} favoritos!`);
                           }}
                           style={{
                             background: streamer.isFavorite 
@@ -770,7 +772,8 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                               background: isActive 
                                 ? `rgba(${platform === 'twitch' ? '145, 70, 255' : platform === 'kick' ? '0, 255, 0' : '255, 0, 0'}, 0.3)`
                                 : 'rgba(255, 255, 255, 0.1)',
-                              borderRadius: '20px',
+                              borderRadius: '8px',
+                              height: '32px',
                               border: isActive
                                 ? `1px solid ${getPlatformColor(platform)}`
                                 : '1px solid rgba(255, 255, 255, 0.2)',

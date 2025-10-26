@@ -384,10 +384,25 @@ function App() {
     // Verificar imediatamente apenas uma vez, mas com delay
     const initialCheck = async () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
+      const currentStreamers = streamers;
       const updatedStreamers = await Promise.all(
-        streamers.map(checkStreamerStatusWithPriority)
+        currentStreamers.map(checkStreamerStatusWithPriority)
       );
-      setStreamers(updatedStreamers);
+      
+      // Preservar preferências manuais sempre
+      const finalStreamers = updatedStreamers.map(updatedStreamer => {
+        const currentStreamer = currentStreamers.find(s => s.id === updatedStreamer.id);
+        if (currentStreamer) {
+          return {
+            ...updatedStreamer,
+            isFavorite: currentStreamer.isFavorite,
+            notificationsEnabled: currentStreamer.notificationsEnabled
+          };
+        }
+        return updatedStreamer;
+      });
+      
+      setStreamers(finalStreamers);
     };
     initialCheck();
 
@@ -399,8 +414,21 @@ function App() {
         currentStreamers.map(checkStreamerStatusWithPriority)
       );
       
+      // Preservar preferências manuais sempre
+      const finalStreamers = updatedStreamers.map(updatedStreamer => {
+        const currentStreamer = currentStreamers.find(s => s.id === updatedStreamer.id);
+        if (currentStreamer) {
+          return {
+            ...updatedStreamer,
+            isFavorite: currentStreamer.isFavorite,
+            notificationsEnabled: currentStreamer.notificationsEnabled
+          };
+        }
+        return updatedStreamer;
+      });
+      
       // Verificar mudanças de status e enviar notificações ANTES de atualizar o estado
-      updatedStreamers.forEach((updatedStreamer) => {
+      finalStreamers.forEach((updatedStreamer) => {
         const oldStreamer = currentStreamers.find(s => s.id === updatedStreamer.id);
         // Verificar se o streamer mudou de offline para online E não estava online antes
         if (oldStreamer && oldStreamer.status === 'offline' && updatedStreamer.status === 'online') {
@@ -480,7 +508,7 @@ function App() {
       });
       
       // Atualizar estado após verificar notificações
-      setStreamers(updatedStreamers);
+      setStreamers(finalStreamers);
     }, intervalMs);
 
     // Cleanup
@@ -554,21 +582,27 @@ function App() {
     setSelectedStreamers(prev => prev.filter(s => s.id !== streamerId));
   };
 
-  const handleToggleFavorite = (streamerId: string) => {
-    setStreamers(prev => prev.map(streamer => 
-      streamer.id === streamerId 
-        ? { ...streamer, isFavorite: !streamer.isFavorite }
-        : streamer
-    ));
-  };
+  const handleToggleFavorite = useCallback((streamerId: string) => {
+    setStreamers(prev => {
+      return prev.map(streamer => {
+        if (streamer.id === streamerId) {
+          return { ...streamer, isFavorite: !streamer.isFavorite };
+        }
+        return streamer;
+      });
+    });
+  }, []);
 
-  const handleToggleNotifications = (streamerId: string) => {
-    setStreamers(prev => prev.map(streamer => 
-      streamer.id === streamerId 
-        ? { ...streamer, notificationsEnabled: !streamer.notificationsEnabled }
-        : streamer
-    ));
-  };
+  const handleToggleNotifications = useCallback((streamerId: string) => {
+    setStreamers(prev => {
+      return prev.map(streamer => {
+        if (streamer.id === streamerId) {
+          return { ...streamer, notificationsEnabled: !streamer.notificationsEnabled };
+        }
+        return streamer;
+      });
+    });
+  }, []);
 
 
   return (
