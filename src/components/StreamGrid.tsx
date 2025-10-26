@@ -280,7 +280,7 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
               fontWeight: '500'
             }}>
               <span>💡</span>
-              <span>Clique no botão + na sidebar para começar</span>
+              <span>Clique no botão "+" no topo da tela para começar</span>
             </div>
           </div>
         ) : (

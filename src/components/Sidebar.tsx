@@ -373,7 +373,7 @@ export function Sidebar({
             }}>📺</div>
             <div>
               <p style={{ fontSize: '1rem', fontWeight: '600', margin: '0 0 0.5rem 0' }}>Nenhum streamer adicionado</p>
-              <p style={{ fontSize: '0.875rem', margin: 0, opacity: 0.8 }}>Clique no botão + para adicionar seu primeiro streamer</p>
+              <p style={{ fontSize: '0.875rem', margin: 0, opacity: 0.8 }}>Clique no botão "+" no topo para adicionar seu primeiro streamer</p>
             </div>
           </div>
         ) : (

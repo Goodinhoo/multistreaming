@@ -1982,7 +1982,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                       fontSize: '0.875rem',
                       margin: 0
                     }}>
-                      Adicione streamers usando o botão no header
+                      Adicione streamers usando o botão "+" no topo da tela
                     </p>
                   </div>
                 ) : (

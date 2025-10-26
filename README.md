@@ -42,7 +42,7 @@ npm run dev
 
 ## 🎯 Como usar
 
-1. **Adicionar streamers**: Clique no botão "+" e adicione streamers das plataformas desejadas
+1. **Adicionar streamers**: Clique no botão "+" no topo da tela e adicione streamers das plataformas desejadas
 2. **Visualizar streams**: Clique nos streamers na sidebar para ver suas lives
 3. **Chat simultâneo**: Use as abas de avatares para alternar entre chats
 4. **Favoritos**: Marque streamers como favoritos para acesso rápido

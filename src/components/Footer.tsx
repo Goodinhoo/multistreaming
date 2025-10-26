@@ -333,7 +333,7 @@ export function Footer() {
           }}>
             <p style={{ margin: '0 0 1rem 0' }}>
               <strong style={{ color: 'white' }}>Como adicionar um streamer:</strong><br />
-              Clique no botão "+" na sidebar e digite o nome do streamer ou o canal da plataforma.
+              Clique no botão "+" no topo da tela e digite o nome do streamer ou o canal da plataforma.
             </p>
             <p style={{ margin: '0 0 1rem 0' }}>
               <strong style={{ color: 'white' }}>Como visualizar um stream:</strong><br />
