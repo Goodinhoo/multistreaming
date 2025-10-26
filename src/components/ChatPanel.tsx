@@ -28,6 +28,7 @@ export function AvatarButton({ streamer, isActive, onClick, vertical = false }: 
         alignItems: 'center',
         justifyContent: 'center',
         padding: vertical ? '0.5rem' : '0.5rem',
+        marginBottom: vertical ? '0.5rem' : '0',
         backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
         border: 'none',
         borderRadius: '6px',
@@ -94,15 +95,13 @@ export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, o
     }
   }, [onActiveChatStreamerChange]);
 
-    // Obter streamers que estão sendo visualizados
-  const activeStreamers = streamers.filter(s => viewingStreamers.has(s.id));
-  
-  // Criar string estável dos IDs para usar como dependência
-  const activeStreamerIds = useMemo(() => 
-    activeStreamers.map(s => s.id).sort().join(','), 
-    [activeStreamers]
+  // Obter streamers que estão sendo visualizados - memoizado para estabilidade
+  const activeStreamers = useMemo(() => 
+    streamers.filter(s => viewingStreamers.has(s.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [viewingStreamers]
   );
-
+  
   // Sincronizar com o streamer ativo externo quando fornecido
   useEffect(() => {
     // Se está sendo controlado externamente através de activeChatStreamerId
@@ -114,24 +113,31 @@ export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, o
       return;
     }
     
-    // Caso contrário, inicializar internamente
-    if (activeStreamers.length > 0) {
-      if (!internalActiveStreamerId) {
-        setInternalActiveStreamerId(activeStreamers[0].id);
-      } else if (!activeStreamers.some(s => s.id === internalActiveStreamerId)) {
-        // Só mudar se o streamer ativo não existe mais na lista
-        setInternalActiveStreamerId(activeStreamers[0].id);
+    // Caso contrário, inicializar internamente apenas uma vez
+    if (internalActiveStreamerId === null && viewingStreamers.size > 0) {
+      const firstId = Array.from(viewingStreamers)[0];
+      if (firstId) {
+        setInternalActiveStreamerId(firstId);
       }
-      // Se o streamer ativo ainda existe, manter o mesmo (não recarregar)
-    } else {
-      setInternalActiveStreamerId(null);
+      return;
     }
-  }, [activeStreamers.length, activeStreamerIds, internalActiveStreamerId, activeChatStreamerId, onActiveChatStreamerChange]);
+    
+    // Verificar se o streamer ativo ainda existe na lista
+    if (internalActiveStreamerId && viewingStreamers.size > 0) {
+      const stillExists = viewingStreamers.has(internalActiveStreamerId);
+      if (!stillExists) {
+        // Só mudar se o streamer ativo não existe mais na lista
+        const firstId = Array.from(viewingStreamers)[0] || null;
+        setInternalActiveStreamerId(firstId);
+      }
+    }
+  }, [viewingStreamers, internalActiveStreamerId, activeChatStreamerId, onActiveChatStreamerChange]);
 
   // Definir aba ativa inicial baseada no streamer ativo
   useEffect(() => {
     if (activeStreamerId && activeStreamers.length > 0) {
-      const currentStreamer = activeStreamers.find(s => s.id === activeStreamerId);
+      const streamerId = activeStreamerId;
+      const currentStreamer = activeStreamers.find(s => s.id === streamerId);
       if (currentStreamer) {
         const platforms = Object.entries(currentStreamer.platforms)
           .filter(([, channelId]) => channelId && channelId.trim() !== '')
@@ -142,7 +148,8 @@ export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, o
         }
       }
     }
-  }, [activeStreamerId, activeStreamers, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStreamerId, activeStreamers.length, activeTab]);
 
   // Se não há streamers sendo visualizados, mostrar mensagem
   if (activeStreamers.length === 0) {

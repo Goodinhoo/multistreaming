@@ -2309,7 +2309,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                           color: 'white',
                           margin: 0
                         }}>
-                          Correções de Favoritos e Estilo dos Botões
+                          Melhorias de Performance e Correções
                         </h4>
                         <p style={{
                           fontSize: '0.75rem',
@@ -2327,10 +2327,12 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                       fontSize: '0.875rem',
                       lineHeight: '1.6'
                     }}>
+                      <li>Chat não recarrega mais ao esconder/mostrar ou quando barra de avatares aparece</li>
+                      <li>Iframes mantêm estado mesmo quando componentes são ocultos</li>
+                      <li>Colunas de avatares sempre renderizadas no DOM (não desmontam)</li>
                       <li>Corrigido problema de favoritos/notificações ao clicar rapidamente</li>
                       <li>Botões de plataforma agora têm mesma altura e border-radius do botão X</li>
-                      <li>Preferências manuais preservadas em todas as atualizações</li>
-                      <li>Atualizações de texto para refletir nova posição do botão adicionar</li>
+                      <li>Memoização otimizada para evitar re-renders desnecessários</li>
                     </ul>
                   </div>
 
@@ -2362,7 +2364,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                           color: 'rgba(255, 255, 255, 0.6)',
                           margin: '0.25rem 0 0 0'
                         }}>
-                          28/10/2025
+                          26/10/2025
                         </p>
                       </div>
                     </div>

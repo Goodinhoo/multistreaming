@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Sidebar } from './components/Sidebar';
@@ -189,6 +189,16 @@ function App() {
   const [streamers, setStreamers] = useState<Streamer[]>([]);
   const [selectedStreamers, setSelectedStreamers] = useState<Streamer[]>([]);
   const [activeChatStreamerId, setActiveChatStreamerId] = useState<string | null>(null);
+  
+  // Criar Set estável de IDs de streamers selecionados para evitar re-renders desnecessários
+  const selectedStreamerIds = useMemo(() => 
+    selectedStreamers.map(s => s.id).sort().join(','), 
+    [selectedStreamers]
+  );
+  
+  const viewingStreamersSet = useMemo(() => {
+    return selectedStreamerIds ? new Set<string>(selectedStreamerIds.split(',')) : new Set<string>();
+  }, [selectedStreamerIds]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -629,16 +639,16 @@ function App() {
         {/* Se chat está à direita: Sidebar → Streams → Chat */}
         
         {/* Chat à esquerda */}
-        {settings.chatPosition === 'left' && chatVisible && (
+        {settings.chatPosition === 'left' && (
           <div style={{ 
-            display: 'flex',
+            display: chatVisible ? 'flex' : 'none',
             width: selectedStreamers.length > 1 ? `${chatWidth + 60}px` : `${chatWidth}px`,
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: selectedStreamers.length > 1 ? 310 : 250,
             maxWidth: 600
           }}>
-            {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
+            {/* Coluna de Avatares - sempre renderizada mas oculta via CSS */}
             <div 
               className="avatars-column-scroll" 
               style={{
@@ -646,16 +656,16 @@ function App() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: selectedStreamers.length > 1 ? '0.5rem' : '0',
+                padding: selectedStreamers.length > 1 ? '0.75rem 0.5rem' : '0',
                 background: 'rgba(0, 0, 0, 0.3)',
                 borderRight: selectedStreamers.length > 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1), border 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                opacity: selectedStreamers.length > 1 ? 1 : 0
+                opacity: selectedStreamers.length > 1 ? 1 : 0,
+                pointerEvents: selectedStreamers.length > 1 ? 'auto' : 'none'
               }}>
-              {selectedStreamers.length > 1 && selectedStreamers.map((streamer) => (
+              {selectedStreamers.map((streamer) => (
                 <AvatarButton
                   key={streamer.id}
                   streamer={streamer}
@@ -671,7 +681,7 @@ function App() {
               <ChatPanel 
                 streamers={streamers}
                 selectedStreamer={selectedStreamers[0]}
-                viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+                viewingStreamers={viewingStreamersSet}
                 activeChatStreamerId={activeChatStreamerId}
                 onActiveChatStreamerChange={setActiveChatStreamerId}
                 renderAvatarsInSidebar={true}
@@ -829,7 +839,7 @@ function App() {
               handleToggleViewing(streamer);
             }
           }}
-          viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+          viewingStreamers={viewingStreamersSet}
           settings={settings}
         />
             {/* Handle de redimensionamento */}
@@ -979,7 +989,7 @@ function App() {
           <StreamGrid 
             streamers={streamers}
             selectedStreamer={selectedStreamers[0]}
-            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+            viewingStreamers={viewingStreamersSet}
             settings={settings}
             onToggleViewing={(streamerId) => {
               const streamer = streamers.find(s => s.id === streamerId);
@@ -1010,7 +1020,7 @@ function App() {
                   handleToggleViewing(streamer);
                 }
               }}
-              viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+              viewingStreamers={viewingStreamersSet}
               settings={settings}
             />
             {/* Handle de redimensionamento */}
@@ -1143,9 +1153,9 @@ function App() {
         )}
         
         {/* Chat à direita */}
-        {settings.chatPosition === 'right' && chatVisible && (
+        {settings.chatPosition === 'right' && (
           <div style={{ 
-            display: 'flex',
+            display: chatVisible ? 'flex' : 'none',
             width: selectedStreamers.length > 1 ? `${chatWidth + 60}px` : `${chatWidth}px`,
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -1163,26 +1173,27 @@ function App() {
           <ChatPanel 
             streamers={streamers}
             selectedStreamer={selectedStreamers[0]}
-            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-                activeChatStreamerId={activeChatStreamerId}
-                onActiveChatStreamerChange={setActiveChatStreamerId}
-                renderAvatarsInSidebar={true}
-              />
+          viewingStreamers={viewingStreamersSet}
+          activeChatStreamerId={activeChatStreamerId}
+          onActiveChatStreamerChange={setActiveChatStreamerId}
+          renderAvatarsInSidebar={true}
+        />
             </div>
             
-            {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
+            {/* Coluna de Avatares - sempre renderizada mas oculta via CSS */}
             <div className={`avatars-column-scroll`} style={{
               width: selectedStreamers.length > 1 ? '60px' : '0px',
+              display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: selectedStreamers.length > 1 ? '0.5rem' : '0',
-              padding: selectedStreamers.length > 1 ? '0.5rem' : '0',
+              padding: selectedStreamers.length > 1 ? '0.75rem 0.5rem' : '0',
               background: 'rgba(0, 0, 0, 0.3)',
               borderLeft: selectedStreamers.length > 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
               overflow: 'hidden',
               transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
               opacity: selectedStreamers.length > 1 ? 1 : 0,
-              transform: selectedStreamers.length > 1 ? 'translateX(0)' : 'translateX(-20px)'
+              transform: selectedStreamers.length > 1 ? 'translateX(0)' : 'translateX(-20px)',
+              pointerEvents: selectedStreamers.length > 1 ? 'auto' : 'none'
             }}>
               {selectedStreamers.map((streamer) => (
                 <AvatarButton
@@ -1342,7 +1353,7 @@ function App() {
         onRemoveStreamer={handleRemoveStreamer}
         settings={settings}
         onUpdateSettings={updateSettings}
-        viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+        viewingStreamers={viewingStreamersSet}
         onUpdateViewingStreamers={(streamerIds) => {
           const selectedStreamers = streamers.filter(s => streamerIds.has(s.id));
           // Verificar se excede o limite
@@ -1372,7 +1383,7 @@ function App() {
         isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
         streamers={streamers}
-        viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+        viewingStreamers={viewingStreamersSet}
         settings={settings}
       />
     </div>
