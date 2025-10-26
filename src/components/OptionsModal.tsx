@@ -2309,6 +2309,52 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                           color: 'white',
                           margin: 0
                         }}>
+                          Correções de Favoritos e Estilo dos Botões
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          28/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Corrigido problema de favoritos/notificações ao clicar rapidamente</li>
+                      <li>Botões de plataforma agora têm mesma altura e border-radius do botão X</li>
+                      <li>Preferências manuais preservadas em todas as atualizações</li>
+                      <li>Atualizações de texto para refletir nova posição do botão adicionar</li>
+                    </ul>
+                  </div>
+
+                  {/* Ajustes de Z-index e Animações */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>🎨</span>
+                      <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
                           Ajustes de Z-index e Animações
                         </h4>
                         <p style={{
