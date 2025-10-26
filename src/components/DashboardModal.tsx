@@ -993,33 +993,33 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                   </div>
 
                   <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '0.75rem',
                     position: 'relative'
                   }}>
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Streamers</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>{twitchStreamers.length}</span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Total de Streamers</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>{twitchStreamers.length}</span>
                     </div>
 
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Online Agora</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#10b981' }}>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Online Agora</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>
                         {twitchStreamers.filter(s => s.status === 'online').length}
                       </span>
                     </div>
@@ -1027,13 +1027,13 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Viewers</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Total de Viewers</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>
                         {twitchViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
@@ -1041,21 +1041,24 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem'
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: '0.75rem'
+                        marginBottom: '0.5rem'
                       }}>
-                        <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Taxa Online</span>
-                        <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem' }}>Taxa Online</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white' }}>
                           {twitchStreamers.length > 0 ? Math.round((twitchStreamers.filter(s => s.status === 'online').length / twitchStreamers.length) * 100) : 0}%
                         </span>
                       </div>
                       <div style={{
-                        height: '8px',
+                        height: '6px',
                         background: 'rgba(255, 255, 255, 0.1)',
                         borderRadius: '4px',
                         overflow: 'hidden'
@@ -1130,33 +1133,33 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                   </div>
 
                   <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '0.75rem',
                     position: 'relative'
                   }}>
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Streamers</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>{kickStreamers.length}</span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Total de Streamers</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>{kickStreamers.length}</span>
                     </div>
 
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Online Agora</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#10b981' }}>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Online Agora</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>
                         {kickStreamers.filter(s => s.status === 'online').length}
                       </span>
                     </div>
@@ -1164,13 +1167,13 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem',
+                      padding: '1rem',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
-                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Viewers</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Total de Viewers</span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>
                         {kickViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
@@ -1178,21 +1181,24 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '1.25rem'
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
                     }}>
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: '0.75rem'
+                        marginBottom: '0.5rem'
                       }}>
-                        <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Taxa Online</span>
-                        <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'white' }}>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem' }}>Taxa Online</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white' }}>
                           {kickStreamers.length > 0 ? Math.round((kickStreamers.filter(s => s.status === 'online').length / kickStreamers.length) * 100) : 0}%
                         </span>
                       </div>
                       <div style={{
-                        height: '8px',
+                        height: '6px',
                         background: 'rgba(255, 255, 255, 0.1)',
                         borderRadius: '4px',
                         overflow: 'hidden'
@@ -1784,7 +1790,9 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
+                          flexWrap: 'wrap',
+                          gap: '0.5rem'
                         }}>
                           <span style={{
                             color: 'rgba(255, 255, 255, 0.6)',
@@ -1793,22 +1801,56 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                             gap: '0.25rem'
                           }}>
                             <Eye size={12} />
-                            {(streamer.streamInfo?.viewers || 0).toLocaleString('pt-PT')}
+                            {(() => {
+                              const platformData = platformViewers.get(streamer.id);
+                              const totalViewers = (platformData?.twitch || 0) + (platformData?.kick || 0);
+                              return totalViewers > 0 ? totalViewers.toLocaleString('pt-PT') : (streamer.streamInfo?.viewers || 0).toLocaleString('pt-PT');
+                            })()}
                           </span>
-                          <span style={{
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                            background: Object.keys(streamer.platforms)[0] === 'twitch' 
-                              ? 'rgba(145, 70, 255, 0.2)' 
-                              : 'rgba(0, 255, 0, 0.2)',
-                            color: Object.keys(streamer.platforms)[0] === 'twitch' 
-                              ? '#9146ff' 
-                              : '#00ff00',
-                            fontWeight: '600',
-                            textTransform: 'uppercase'
+                          <div style={{
+                            display: 'flex',
+                            gap: '0.25rem',
+                            flexWrap: 'wrap'
                           }}>
-                            {Object.keys(streamer.platforms)[0]}
-                          </span>
+                            {(() => {
+                              const platformData = platformViewers.get(streamer.id);
+                              const platforms = [];
+                              if (platformData?.twitch && platformData.twitch > 0) {
+                                platforms.push({ name: 'twitch', viewers: platformData.twitch });
+                              }
+                              if (platformData?.kick && platformData.kick > 0) {
+                                platforms.push({ name: 'kick', viewers: platformData.kick });
+                              }
+                              // Se não temos dados em platformViewers, usar plataforma do streamInfo
+                              if (platforms.length === 0 && streamer.streamInfo?.platform) {
+                                platforms.push({ name: streamer.streamInfo.platform, viewers: 0 });
+                              }
+                              // Fallback para primeira plataforma configurada
+                              if (platforms.length === 0 && Object.keys(streamer.platforms).length > 0) {
+                                platforms.push({ name: Object.keys(streamer.platforms)[0], viewers: 0 });
+                              }
+                              return platforms;
+                            })().map((platform: { name: string; viewers: number }) => (
+                              <span
+                                key={platform.name}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '4px',
+                                  background: platform.name === 'twitch' 
+                                    ? 'rgba(145, 70, 255, 0.2)' 
+                                    : 'rgba(0, 255, 0, 0.2)',
+                                  color: platform.name === 'twitch' 
+                                    ? '#9146ff' 
+                                    : '#00ff00',
+                                  fontWeight: '600',
+                                  textTransform: 'uppercase',
+                                  fontSize: '0.7rem'
+                                }}
+                              >
+                                {platform.name}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1894,349 +1936,133 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
           {/* Tab: Recomendações */}
           {activeTab === 'recommendations' && (
             <div>
-              {/* Comparação Detalhada de Plataformas */}
+              {/* Título */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '2rem'
+              }}>
+                <h2 style={{
+                  fontSize: '2rem',
+                  fontWeight: '700',
+                  background: 'linear-gradient(90deg, #9333ea 0%, #fbbf24 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  margin: '0 0 0.5rem 0'
+                }}>
+                  💡 Recomendações
+                </h2>
+                <p style={{
+                  fontSize: '1rem',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  margin: 0
+                }}>
+                  Dicas e sugestões para melhorar sua experiência
+                </p>
+              </div>
+
+              {/* Cards de Recomendações */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                 gap: '1.5rem',
                 marginBottom: '2rem'
               }}>
-                {/* Twitch Detalhado */}
+                {/* Recomendação 1 */}
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(145, 70, 255, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
-                  border: '1px solid rgba(145, 70, 255, 0.3)'
+                  border: '1px solid rgba(59, 130, 246, 0.3)'
                 }}>
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '1.5rem'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem'
-                    }}>
-                      <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '12px',
-                        background: 'rgba(145, 70, 255, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2rem'
-                      }}>
-                        🟣
-                      </div>
-                      <div>
-                        <h3 style={{
-                          fontSize: '1.5rem',
-                          fontWeight: '700',
-                          color: '#9146ff',
-                          margin: 0
-                        }}>
-                          Twitch
-                        </h3>
-                        <p style={{
-                          fontSize: '0.875rem',
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          margin: 0
-                        }}>
-                          A maior plataforma de streaming
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '1rem',
+                    fontSize: '2rem',
                     marginBottom: '1rem'
                   }}>
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{
-                        fontSize: '2rem',
-                        fontWeight: '700',
-                        color: 'white',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {twitchStreamers.length}
-                      </div>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        textTransform: 'uppercase',
-                        fontWeight: '600'
-                      }}>
-                        Total
-                      </div>
-                    </div>
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{
-                        fontSize: '2rem',
-                        fontWeight: '700',
-                        color: '#10b981',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {twitchStreamers.filter(s => s.status === 'online').length}
-                      </div>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        textTransform: 'uppercase',
-                        fontWeight: '600'
-                      }}>
-                        Online
-                      </div>
-                    </div>
+                    📊
                   </div>
-
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    marginBottom: '1rem'
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '0.5rem'
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '0.875rem',
-                        color: 'rgba(255, 255, 255, 0.7)'
-                      }}>
-                        Total de Viewers
-                      </span>
-                      <span style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '700',
-                        color: 'white'
-                      }}>
-                        {twitchViewers.toLocaleString('pt-PT')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '8px',
-                    padding: '1rem'
+                    Adicione Mais Streamers
+                  </h3>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    lineHeight: '1.5',
+                    margin: 0
                   }}>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      marginBottom: '0.5rem',
-                      textTransform: 'uppercase',
-                      fontWeight: '600'
-                    }}>
-                      Taxa de Online
-                    </div>
-                    <div style={{
-                      height: '8px',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${twitchStreamers.length > 0 ? (twitchStreamers.filter(s => s.status === 'online').length / twitchStreamers.length) * 100 : 0}%`,
-                        background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                    <div style={{
-                      fontSize: '1.25rem',
-                      fontWeight: '700',
-                      color: 'white'
-                    }}>
-                      {twitchStreamers.length > 0 ? Math.round((twitchStreamers.filter(s => s.status === 'online').length / twitchStreamers.length) * 100) : 0}%
-                    </div>
-                  </div>
+                    Você tem {totalStreamers} streamer{totalStreamers !== 1 ? 's' : ''}. Considere adicionar mais para aumentar suas opções de visualização.
+                  </p>
                 </div>
 
-                {/* Kick Detalhado */}
+                {/* Recomendação 2 */}
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(0, 255, 0, 0.2) 0%, rgba(0, 204, 0, 0.2) 100%)',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
-                  border: '1px solid rgba(0, 255, 0, 0.3)'
+                  border: '1px solid rgba(16, 185, 129, 0.3)'
                 }}>
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '1.5rem'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem'
-                    }}>
-                      <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '12px',
-                        background: 'rgba(0, 255, 0, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2rem'
-                      }}>
-                        🟢
-                      </div>
-                      <div>
-                        <h3 style={{
-                          fontSize: '1.5rem',
-                          fontWeight: '700',
-                          color: '#00ff00',
-                          margin: 0
-                        }}>
-                          Kick
-                        </h3>
-                        <p style={{
-                          fontSize: '0.875rem',
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          margin: 0
-                        }}>
-                          A plataforma em ascensão
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '1rem',
+                    fontSize: '2rem',
                     marginBottom: '1rem'
                   }}>
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{
-                        fontSize: '2rem',
-                        fontWeight: '700',
-                        color: 'white',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {kickStreamers.length}
-                      </div>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        textTransform: 'uppercase',
-                        fontWeight: '600'
-                      }}>
-                        Total
-                      </div>
-                    </div>
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{
-                        fontSize: '2rem',
-                        fontWeight: '700',
-                        color: '#10b981',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {kickStreamers.filter(s => s.status === 'online').length}
-                      </div>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        textTransform: 'uppercase',
-                        fontWeight: '600'
-                      }}>
-                        Online
-                      </div>
-                    </div>
+                    🎯
                   </div>
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Ative Notificações
+                  </h3>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    lineHeight: '1.5',
+                    margin: 0
+                  }}>
+                    {onlineStreamers.length > 0 
+                      ? `Você tem ${onlineStreamers.length} streamer${onlineStreamers.length !== 1 ? 's' : ''} online agora. Ative notificações para não perder quando seus favoritos entrarem ao vivo.`
+                      : 'Ative notificações para seus streamers favoritos e seja avisado quando entrarem ao vivo.'}
+                  </p>
+                </div>
 
+                {/* Recomendação 3 */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  border: '1px solid rgba(147, 51, 234, 0.3)'
+                }}>
                   <div style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '8px',
-                    padding: '1rem',
+                    fontSize: '2rem',
                     marginBottom: '1rem'
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '0.875rem',
-                        color: 'rgba(255, 255, 255, 0.7)'
-                      }}>
-                        Total de Viewers
-                      </span>
-                      <span style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '700',
-                        color: 'white'
-                      }}>
-                        {kickViewers.toLocaleString('pt-PT')}
-                      </span>
-                    </div>
+                    ⭐
                   </div>
-
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '8px',
-                    padding: '1rem'
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '0.5rem'
                   }}>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      marginBottom: '0.5rem',
-                      textTransform: 'uppercase',
-                      fontWeight: '600'
-                    }}>
-                      Taxa de Online
-                    </div>
-                    <div style={{
-                      height: '8px',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${kickStreamers.length > 0 ? (kickStreamers.filter(s => s.status === 'online').length / kickStreamers.length) * 100 : 0}%`,
-                        background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                    <div style={{
-                      fontSize: '1.25rem',
-                      fontWeight: '700',
-                      color: 'white'
-                    }}>
-                      {kickStreamers.length > 0 ? Math.round((kickStreamers.filter(s => s.status === 'online').length / kickStreamers.length) * 100) : 0}%
-                    </div>
-                  </div>
+                    Marque Favoritos
+                  </h3>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    lineHeight: '1.5',
+                    margin: 0
+                  }}>
+                    {favoriteStreamers.length > 0
+                      ? `Você tem ${favoriteStreamers.length} favorito${favoriteStreamers.length !== 1 ? 's' : ''}. Adicione mais para facilitar o acesso rápido aos seus streamers preferidos.`
+                      : 'Marque seus streamers favoritos para acesso rápido e personalização da sua experiência.'}
+                  </p>
                 </div>
               </div>
 
