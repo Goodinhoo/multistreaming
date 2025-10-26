@@ -2309,6 +2309,52 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                           color: 'white',
                           margin: 0
                         }}>
+                          Ajustes de Z-index e Animações
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          28/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Botões toggle agora ficam acima dos visualizadores</li>
+                      <li>Z-index ajustado para garantir visibilidade dos controles</li>
+                      <li>Animações de fadeInLeft/fadeInRight nas colunas</li>
+                      <li>Transições suaves de largura mantidas</li>
+                    </ul>
+                  </div>
+
+                  {/* Correções de Layout e Limite de Visualizadores */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>📐</span>
+                      <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
                           Correções de Layout e Limite de Visualizadores
                         </h4>
                         <p style={{
