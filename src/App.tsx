@@ -193,7 +193,7 @@ function App() {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [chatVisible, setChatVisible] = useState(true);
-  const DEFAULT_SIDEBAR_WIDTH = 320;
+  const DEFAULT_SIDEBAR_WIDTH = 350;
   const DEFAULT_CHAT_WIDTH = 350;
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
