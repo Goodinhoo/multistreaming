@@ -596,7 +596,7 @@ function App() {
         
         {/* Chat à esquerda */}
         {settings.chatPosition === 'left' && chatVisible && (
-          <div className="animate__animated animate__fadeInLeft" style={{ 
+          <div style={{ 
             display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
@@ -723,7 +723,7 @@ function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                zIndex: 100,
+                zIndex: 9999,
                 transition: 'all 0.2s ease',
                 boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
               }}
@@ -760,7 +760,7 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              zIndex: 100,
+              zIndex: 9999,
               transition: 'all 0.2s ease',
               boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
             }}
@@ -779,9 +779,10 @@ function App() {
         
         {/* Sidebar - aparece à esquerda quando chat está à direita, ou à direita quando chat está à esquerda */}
         {sidebarVisible && settings.chatPosition === 'right' && (
-          <div className="animate__animated animate__fadeInLeft" style={{ 
+          <div style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
+            zIndex: 1,
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
             maxWidth: 600
@@ -877,7 +878,7 @@ function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                zIndex: 100,
+                zIndex: 9999,
                 transition: 'all 0.2s ease',
                 boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
               }}
@@ -914,7 +915,7 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              zIndex: 100,
+              zIndex: 9999,
               transition: 'all 0.2s ease',
               boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
             }}
@@ -937,7 +938,9 @@ function App() {
           flexDirection: 'column',
           minHeight: 0,
           flex: 1,
-          minWidth: 0
+          minWidth: 0,
+          position: 'relative',
+          zIndex: 0
         }}>
           <StreamGrid 
             streamers={streamers}
@@ -957,9 +960,10 @@ function App() {
         
         {/* Sidebar à direita quando chat está à esquerda */}
         {sidebarVisible && settings.chatPosition === 'left' && (
-          <div className="animate__animated animate__fadeInRight" style={{ 
+          <div style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
+            zIndex: 1,
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
             maxWidth: 600
@@ -1050,7 +1054,7 @@ function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                zIndex: 100,
+                zIndex: 9999,
                 transition: 'all 0.2s ease',
                 boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
               }}
@@ -1087,7 +1091,7 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              zIndex: 100,
+              zIndex: 9999,
               transition: 'all 0.2s ease',
               boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
             }}
@@ -1106,7 +1110,7 @@ function App() {
         
         {/* Chat à direita */}
         {settings.chatPosition === 'right' && chatVisible && (
-          <div className="animate__animated animate__fadeInRight" style={{ 
+          <div style={{ 
             display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
@@ -1231,7 +1235,7 @@ function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                zIndex: 100,
+                zIndex: 9999,
                 transition: 'all 0.2s ease',
                 boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
               }}
@@ -1268,7 +1272,7 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              zIndex: 100,
+              zIndex: 9999,
               transition: 'all 0.2s ease',
               boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
             }}
