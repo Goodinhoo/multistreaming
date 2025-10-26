@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, TrendingUp, Users, Eye, Clock, Activity, Calendar } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 import type { Streamer } from '../types';
 import type { AppSettings } from '../types/settings';
 import { useAnimatedClassWithDuration } from '../hooks/useAnimatedClass';
+import { getTwitchStreamData, getKickStreamData } from '../services/api';
 
 interface DashboardModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'comparison' | 'history' | 'recommendations'>('overview');
   const [sessionStart] = useState(new Date());
+  const [platformViewers, setPlatformViewers] = useState<Map<string, { twitch?: number; kick?: number }>>(new Map());
 
   // Atualizar relógio a cada segundo
   useEffect(() => {
@@ -27,7 +29,50 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
     return () => clearInterval(interval);
   }, []);
 
-  if (!isOpen) return null;
+  // Buscar viewers de todas as plataformas para streamers online
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchPlatformViewers = async () => {
+      const viewersMap = new Map<string, { twitch?: number; kick?: number }>();
+      
+      for (const streamer of streamers.filter(s => s.status === 'online')) {
+        const viewers: { twitch?: number; kick?: number } = {};
+        
+        // Buscar viewers da Twitch se configurado
+        if (streamer.platforms.twitch) {
+          try {
+            const twitchData = await getTwitchStreamData(streamer.platforms.twitch);
+            if (twitchData.isOnline && twitchData.streamInfo) {
+              viewers.twitch = twitchData.streamInfo.viewers;
+            }
+          } catch (error) {
+            console.error(`Erro ao buscar viewers da Twitch para ${streamer.name}:`, error);
+          }
+        }
+        
+        // Buscar viewers da Kick se configurado
+        if (streamer.platforms.kick) {
+          try {
+            const kickData = await getKickStreamData(streamer.platforms.kick);
+            if (kickData.isOnline && kickData.streamInfo) {
+              viewers.kick = kickData.streamInfo.viewers;
+            }
+          } catch (error) {
+            console.error(`Erro ao buscar viewers da Kick para ${streamer.name}:`, error);
+          }
+        }
+        
+        if (Object.keys(viewers).length > 0) {
+          viewersMap.set(streamer.id, viewers);
+        }
+      }
+      
+      setPlatformViewers(viewersMap);
+    };
+
+    fetchPlatformViewers();
+  }, [streamers, isOpen]);
 
   // Estatísticas
   const totalStreamers = streamers.length;
@@ -41,10 +86,83 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
   const twitchStreamers = streamers.filter(s => s.platforms.twitch);
   const kickStreamers = streamers.filter(s => s.platforms.kick);
   
-  // Top 5 streamers por viewers
-  const topStreamers = [...onlineStreamers]
-    .sort((a, b) => (b.streamInfo?.viewers || 0) - (a.streamInfo?.viewers || 0))
-    .slice(0, 5);
+  // Viewers por plataforma - usar dados buscados de todas as plataformas
+  const twitchViewers = useMemo(() => {
+    return twitchStreamers
+      .filter(s => s.status === 'online')
+      .reduce((sum, s) => {
+        // Primeiro tentar usar os dados buscados diretamente
+        const platformData = platformViewers.get(s.id);
+        if (platformData?.twitch !== undefined) {
+          return sum + platformData.twitch;
+        }
+        // Se não temos dados buscados, usar o streamInfo se for da Twitch
+        if (s.streamInfo?.platform === 'twitch') {
+          return sum + (s.streamInfo.viewers || 0);
+        }
+        return sum;
+      }, 0);
+  }, [twitchStreamers, platformViewers]);
+  
+  const kickViewers = useMemo(() => {
+    return kickStreamers
+      .filter(s => s.status === 'online')
+      .reduce((sum, s) => {
+        // Primeiro tentar usar os dados buscados diretamente
+        const platformData = platformViewers.get(s.id);
+        if (platformData?.kick !== undefined) {
+          return sum + platformData.kick;
+        }
+        // Se não temos dados buscados, usar o streamInfo se for da Kick
+        if (s.streamInfo?.platform === 'kick') {
+          return sum + (s.streamInfo.viewers || 0);
+        }
+        return sum;
+      }, 0);
+  }, [kickStreamers, platformViewers]);
+
+  // Top 5 streamers por viewers - calcular total de todas as plataformas
+  const topStreamers = useMemo(() => {
+    return [...onlineStreamers]
+      .map(streamer => {
+        // Calcular total de viewers de todas as plataformas
+        const platformData = platformViewers.get(streamer.id);
+        let totalViewers = 0;
+        const platformBreakdown: { twitch?: number; kick?: number } = {};
+        
+        // Usar dados buscados se disponíveis
+        if (platformData) {
+          if (platformData.twitch !== undefined) {
+            totalViewers += platformData.twitch;
+            platformBreakdown.twitch = platformData.twitch;
+          }
+          if (platformData.kick !== undefined) {
+            totalViewers += platformData.kick;
+            platformBreakdown.kick = platformData.kick;
+          }
+        } else {
+          // Se não temos dados buscados, usar streamInfo
+          if (streamer.streamInfo?.viewers) {
+            totalViewers = streamer.streamInfo.viewers;
+            if (streamer.streamInfo.platform === 'twitch') {
+              platformBreakdown.twitch = streamer.streamInfo.viewers;
+            } else if (streamer.streamInfo.platform === 'kick') {
+              platformBreakdown.kick = streamer.streamInfo.viewers;
+            }
+          }
+        }
+        
+        return {
+          ...streamer,
+          totalViewers,
+          platformBreakdown
+        };
+      })
+      .sort((a, b) => b.totalViewers - a.totalViewers)
+      .slice(0, 5);
+  }, [onlineStreamers, platformViewers]);
+
+  if (!isOpen) return null;
   
   // Cálculos adicionais
   const sessionDuration = Math.floor((currentTime.getTime() - sessionStart.getTime()) / 1000 / 60); // minutos
@@ -916,10 +1034,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     }}>
                       <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Viewers</span>
                       <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>
-                        {twitchStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {twitchViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
 
@@ -1056,10 +1171,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     }}>
                       <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>Total de Viewers</span>
                       <span style={{ fontSize: '1.75rem', fontWeight: '700', color: 'white' }}>
-                        {kickStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {kickViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
 
@@ -1175,21 +1287,55 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     </div>
                     <div style={{
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem 1rem',
-                      background: 'rgba(239, 68, 68, 0.2)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(239, 68, 68, 0.3)'
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      gap: '0.25rem'
                     }}>
-                      <Eye size={14} style={{ color: '#ef4444' }} />
-                      <span style={{
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        color: '#ef4444'
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 1rem',
+                        background: 'rgba(239, 68, 68, 0.2)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(239, 68, 68, 0.3)'
                       }}>
-                        {(streamer.streamInfo?.viewers || 0).toLocaleString('pt-PT')}
+                        <Eye size={14} style={{ color: '#ef4444' }} />
+                        <span style={{
+                          fontSize: '0.875rem',
+                          fontWeight: '700',
+                          color: '#ef4444'
+                      }}>
+                        {(streamer as Streamer & { totalViewers: number; platformBreakdown?: { twitch?: number; kick?: number } }).totalViewers.toLocaleString('pt-PT')}
                       </span>
+                    </div>
+                    {(() => {
+                      const streamerWithData = streamer as Streamer & { totalViewers: number; platformBreakdown?: { twitch?: number; kick?: number } };
+                      const breakdown = streamerWithData.platformBreakdown;
+                      const hasMultiplePlatforms = breakdown && 
+                        breakdown.twitch !== undefined && 
+                        breakdown.kick !== undefined;
+                      
+                      return hasMultiplePlatforms ? (
+                        <div style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          fontSize: '0.7rem',
+                          color: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                          {breakdown.twitch !== undefined && (
+                            <span>
+                              🟣 {breakdown.twitch.toLocaleString('pt-PT')}
+                            </span>
+                          )}
+                          {breakdown.kick !== undefined && (
+                            <span>
+                              🟢 {breakdown.kick.toLocaleString('pt-PT')}
+                            </span>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
                     </div>
                   </div>
                 ))}
@@ -1464,10 +1610,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     }}>
                       <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Viewers:</span>
                       <span style={{ color: 'white', fontWeight: '600' }}>
-                        {twitchStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {twitchViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
                   </div>
@@ -1548,10 +1691,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     }}>
                       <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Viewers:</span>
                       <span style={{ color: 'white', fontWeight: '600' }}>
-                        {kickStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {kickViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
                   </div>
@@ -1887,10 +2027,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                         fontWeight: '700',
                         color: 'white'
                       }}>
-                        {twitchStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {twitchViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
                   </div>
@@ -2059,10 +2196,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                         fontWeight: '700',
                         color: 'white'
                       }}>
-                        {kickStreamers
-                          .filter(s => s.status === 'online')
-                          .reduce((sum, s) => sum + (s.streamInfo?.viewers || 0), 0)
-                          .toLocaleString('pt-PT')}
+                        {kickViewers.toLocaleString('pt-PT')}
                       </span>
                     </div>
                   </div>
