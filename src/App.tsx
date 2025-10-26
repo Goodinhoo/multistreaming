@@ -596,7 +596,7 @@ function App() {
         
         {/* Chat à esquerda */}
         {settings.chatPosition === 'left' && chatVisible && (
-          <div style={{ 
+          <div className="animate__animated animate__fadeInLeft" style={{ 
             display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
@@ -779,7 +779,7 @@ function App() {
         
         {/* Sidebar - aparece à esquerda quando chat está à direita, ou à direita quando chat está à esquerda */}
         {sidebarVisible && settings.chatPosition === 'right' && (
-          <div style={{ 
+          <div className="animate__animated animate__fadeInLeft" style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -957,7 +957,7 @@ function App() {
         
         {/* Sidebar à direita quando chat está à esquerda */}
         {sidebarVisible && settings.chatPosition === 'left' && (
-          <div style={{ 
+          <div className="animate__animated animate__fadeInRight" style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
             transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -1106,7 +1106,7 @@ function App() {
         
         {/* Chat à direita */}
         {settings.chatPosition === 'right' && chatVisible && (
-          <div style={{ 
+          <div className="animate__animated animate__fadeInRight" style={{ 
             display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
