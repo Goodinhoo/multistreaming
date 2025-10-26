@@ -2335,6 +2335,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                       <li>Memoização otimizada para evitar re-renders desnecessários</li>
                       <li>Arrastar colunas funciona perfeitamente - cursor não fica mais preso nos iframes</li>
                       <li>Event listeners otimizados usando useRef para remoção correta</li>
+                      <li>Reversão da tentativa de remoção de barras pretas nos streams - mantida funcionalidade original</li>
                     </ul>
                   </div>
 
