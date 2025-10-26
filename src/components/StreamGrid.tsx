@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Bell, Heart } from 'lucide-react';
 import type { Streamer, Platform } from '../types';
 import type { AppSettings } from '../types/settings';
 import { getKickPlayerUrl } from '../services/kickApi';
 import { getStreamInfo, getTwitchStreamData, getKickStreamData } from '../services/api';
+import { showSuccessToast } from '../services/sweetAlert';
 
 interface StreamGridProps {
   streamers: Streamer[];
@@ -10,6 +12,8 @@ interface StreamGridProps {
   viewingStreamers: Set<string>;
   settings: AppSettings;
   onToggleViewing?: (streamerId: string) => void;
+  onToggleNotifications?: (streamerId: string) => void;
+  onToggleFavorite?: (streamerId: string) => void;
 }
 
 // Função para gerar URLs de embed dos streams
@@ -32,7 +36,7 @@ const getStreamEmbedUrl = (platform: Platform, channelId: string): string => {
   }
 };
 
-export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, settings, onToggleViewing }: StreamGridProps) {
+export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, settings, onToggleViewing, onToggleNotifications, onToggleFavorite }: StreamGridProps) {
   // Estado para controlar qual plataforma está ativa para cada streamer
   const [activePlatforms, setActivePlatforms] = useState<Record<string, Platform>>({});
   
@@ -200,7 +204,10 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
     if (count === 2) return { columns: 2, height: '50%' };
     if (count === 3) return { columns: 2, height: '50%' }; // 2 em cima, 1 em baixo
     if (count === 4) return { columns: 2, height: '50%' };
-    return { columns: Math.ceil(Math.sqrt(count)), height: `${100 / Math.ceil(Math.sqrt(count))}%` };
+    if (count === 5) return { columns: 3, height: '33.33%' };
+    if (count === 6) return { columns: 3, height: '33.33%' };
+    // Para 7+, manter mesma altura dos primeiros 6
+    return { columns: 3, height: '33.33%' };
   };
 
   const layout = getGridLayout(activeStreamers.length, settings.gridLayout);
@@ -280,6 +287,7 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${layout.columns}, 1fr)`,
+                gridAutoRows: '1fr',
                 gap: '1rem',
                 height: '100%',
                 overflow: 'hidden',
@@ -301,7 +309,10 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                     : '1px solid rgba(255, 255, 255, 0.1)',
                   transition: 'all 0.3s ease',
                   position: 'relative',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
@@ -519,35 +530,167 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                   justifyContent: 'center',
                   position: 'relative'
                 }}>
-                  {/* Stream Title */}
-                  {(() => {
-                    const activePlatform = activePlatforms[streamer.id];
-                    const platformKey = activePlatform ? `${streamer.id}-${activePlatform}` : null;
-                    const currentStreamInfo = platformKey && platformStreamInfo[platformKey] 
-                      ? platformStreamInfo[platformKey] 
-                      : streamer.streamInfo;
+                  {/* Linha Superior: Título + Botão de Notificações */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {/* Stream Title */}
+                    {(() => {
+                      const activePlatform = activePlatforms[streamer.id];
+                      const platformKey = activePlatform ? `${streamer.id}-${activePlatform}` : null;
+                      const currentStreamInfo = platformKey && platformStreamInfo[platformKey] 
+                        ? platformStreamInfo[platformKey] 
+                        : streamer.streamInfo;
+                      
+                      return currentStreamInfo?.title ? (
+                        <h3 style={{
+                          fontSize: '0.8rem',
+                          color: 'white',
+                          fontWeight: '600',
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: '1.2',
+                          flex: 1,
+                          paddingRight: '0.5rem'
+                        }}>
+                          {currentStreamInfo.title}
+                        </h3>
+                      ) : null;
+                    })()}
                     
-                    return currentStreamInfo?.title ? (
-                      <h3 style={{
-                        fontSize: '0.8rem',
-                        color: 'white',
-                        fontWeight: '600',
-                        margin: '0 0 0.5rem 0',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        lineHeight: '1.2'
-                      }}>
-                        {currentStreamInfo.title}
-                      </h3>
-                    ) : null;
-                  })()}
+                    {/* Botões de Notificações e Favoritos */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginLeft: 'auto'
+                    }}>
+                      {/* Botão de Notificações */}
+                      {onToggleNotifications && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const wasEnabled = streamer.notificationsEnabled;
+                            onToggleNotifications(streamer.id);
+                            showSuccessToast('Notificações', `Notificações para ${streamer.name} foram ${!wasEnabled ? 'ativadas' : 'desativadas'}!`);
+                          }}
+                          style={{
+                            background: streamer.notificationsEnabled 
+                              ? 'rgba(59, 130, 246, 0.3)' 
+                              : 'rgba(59, 130, 246, 0.15)',
+                            border: streamer.notificationsEnabled 
+                              ? '1.5px solid rgba(59, 130, 246, 0.6)' 
+                              : '1.5px solid rgba(59, 130, 246, 0.3)',
+                            borderRadius: '8px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: streamer.notificationsEnabled ? '#93c5fd' : '#3b82f6',
+                            transition: 'all 0.2s ease',
+                            padding: 0,
+                            flexShrink: 0,
+                            boxShadow: streamer.notificationsEnabled 
+                              ? '0 2px 8px rgba(59, 130, 246, 0.3)' 
+                              : '0 2px 8px rgba(59, 130, 246, 0.15)',
+                            backdropFilter: 'blur(10px)',
+                            lineHeight: '1',
+                            margin: 0
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.4)';
+                            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.8)';
+                            e.currentTarget.style.transform = 'scale(1.08)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = streamer.notificationsEnabled 
+                              ? 'rgba(59, 130, 246, 0.3)' 
+                              : 'rgba(59, 130, 246, 0.15)';
+                            e.currentTarget.style.borderColor = streamer.notificationsEnabled 
+                              ? '1.5px solid rgba(59, 130, 246, 0.6)' 
+                              : '1.5px solid rgba(59, 130, 246, 0.3)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = streamer.notificationsEnabled 
+                              ? '0 2px 8px rgba(59, 130, 246, 0.3)' 
+                              : '0 2px 8px rgba(59, 130, 246, 0.15)';
+                          }}
+                          title={streamer.notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
+                        >
+                          <Bell size={16} fill={streamer.notificationsEnabled ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                      
+                      {/* Botão de Favoritos */}
+                      {onToggleFavorite && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const wasFavorite = streamer.isFavorite;
+                            onToggleFavorite(streamer.id);
+                            showSuccessToast('Favoritos', `${streamer.name} foi ${!wasFavorite ? 'adicionado aos' : 'removido dos'} favoritos!`);
+                          }}
+                          style={{
+                            background: streamer.isFavorite 
+                              ? 'rgba(236, 72, 153, 0.3)' 
+                              : 'rgba(236, 72, 153, 0.15)',
+                            border: streamer.isFavorite 
+                              ? '1.5px solid rgba(236, 72, 153, 0.6)' 
+                              : '1.5px solid rgba(236, 72, 153, 0.3)',
+                            borderRadius: '8px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: streamer.isFavorite ? '#f9a8d4' : '#ec4899',
+                            transition: 'all 0.2s ease',
+                            padding: 0,
+                            flexShrink: 0,
+                            boxShadow: streamer.isFavorite 
+                              ? '0 2px 8px rgba(236, 72, 153, 0.3)' 
+                              : '0 2px 8px rgba(236, 72, 153, 0.15)',
+                            backdropFilter: 'blur(10px)',
+                            lineHeight: '1',
+                            margin: 0
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'rgba(236, 72, 153, 0.4)';
+                            e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.8)';
+                            e.currentTarget.style.transform = 'scale(1.08)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(236, 72, 153, 0.4)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = streamer.isFavorite 
+                              ? 'rgba(236, 72, 153, 0.3)' 
+                              : 'rgba(236, 72, 153, 0.15)';
+                            e.currentTarget.style.borderColor = streamer.isFavorite 
+                              ? '1.5px solid rgba(236, 72, 153, 0.6)' 
+                              : '1.5px solid rgba(236, 72, 153, 0.3)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = streamer.isFavorite 
+                              ? '0 2px 8px rgba(236, 72, 153, 0.3)' 
+                              : '0 2px 8px rgba(236, 72, 153, 0.15)';
+                          }}
+                          title={streamer.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                        >
+                          <Heart size={16} fill={streamer.isFavorite ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   
                   {/* Viewers e Game */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
                     gap: '1rem'
                   }}>
                     <div style={{
@@ -606,7 +749,8 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
+                      marginLeft: 'auto'
                     }}>
                       {/* Botões de Plataforma */}
                       {getAvailablePlatforms(streamer).map((platform) => {

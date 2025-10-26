@@ -1,17 +1,13 @@
-import { Trash2, Bell, Heart, Tv, Play, Zap } from 'lucide-react';
+import { Tv, Play, Zap } from 'lucide-react';
 import type { Streamer, Platform } from '../types';
 import type { AppSettings } from '../types/settings';
 import { useAnimatedClass, useInfiniteAnimation } from '../hooks/useAnimatedClass';
 import { useAnimations } from '../hooks/useAnimations';
-import { confirmDeleteStreamer, showSuccessToast } from '../services/sweetAlert';
 
 interface SidebarProps {
   streamers: Streamer[];
-  onRemoveStreamer: (id: string) => void;
   onToggleViewing: (streamerId: string) => void;
   viewingStreamers: Set<string>;
-  onToggleFavorite: (id: string) => void;
-  onToggleNotifications: (id: string) => void;
   settings: AppSettings;
 }
 
@@ -23,19 +19,14 @@ const platformIcons = {
 
 export function Sidebar({ 
   streamers, 
-  onRemoveStreamer, 
   onToggleViewing,
   viewingStreamers,
-  onToggleFavorite,
-  onToggleNotifications,
   settings
 }: SidebarProps) {
   const { animationsEnabled } = useAnimations();
   const animatedCardClass = useAnimatedClass('', 'animate__fadeIn');
+  // Duração da animação já está controlada via CSS (0.2s)
   const subtlePulseClass = useInfiniteAnimation('', 'animate__pulse', 2000);
-  const trashIconClass = '';
-  const bellIconClass = '';
-  const heartIconClass = '';
   const onlineStatusClass = useInfiniteAnimation('', 'animate__pulse', 2000);
   
   // Aplicar filtros
@@ -90,21 +81,6 @@ export function Sidebar({
   // Dentro dos não-favoritos, separar por status
   const onlineStreamers = nonFavoriteStreamers.filter(streamer => streamer.status === 'online');
   const offlineStreamers = nonFavoriteStreamers.filter(streamer => streamer.status === 'offline');
-
-  // Funções para notificações e favoritos
-  const handleNotificationToggle = (streamerId: string, streamerName: string) => {
-    onToggleNotifications(streamerId);
-    const streamer = streamers.find(s => s.id === streamerId);
-    const isEnabled = streamer?.notificationsEnabled || false;
-    showSuccessToast('Notificações', `Notificações para ${streamerName} foram ${!isEnabled ? 'ativadas' : 'desativadas'}!`);
-  };
-
-  const handleFavoriteToggle = (streamerId: string, streamerName: string) => {
-    onToggleFavorite(streamerId);
-    const streamer = streamers.find(s => s.id === streamerId);
-    const isFavorite = streamer?.isFavorite || false;
-    showSuccessToast('Favoritos', `${streamerName} foi ${!isFavorite ? 'adicionado aos' : 'removido dos'} favoritos!`);
-  };
 
   // Função para renderizar um card de streamer
   const renderStreamerCard = (streamer: Streamer) => {
@@ -182,14 +158,14 @@ export function Sidebar({
         marginBottom: '0.1rem'
               }}>
                 <div style={{
-          width: '28px',
-          height: '28px',
+          width: '40px',
+          height: '40px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)',
                   display: 'flex',
                   alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '0.8rem',
+          fontSize: '1rem',
           overflow: 'hidden',
           flexShrink: 0
                 }}>
@@ -228,7 +204,7 @@ export function Sidebar({
         
         <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{
-                    fontSize: '0.8rem',
+                    fontSize: '0.95rem',
             fontWeight: '600',
                       color: 'white',
             margin: '0 0 0.05rem 0',
@@ -282,11 +258,11 @@ export function Sidebar({
                   </div>
                 </div>
 
-          {/* Platforms and Actions */}
+          {/* Platforms */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.25rem',
+            gap: '0.15rem',
             marginTop: '0.1rem'
           }}>
             {/* Platform buttons - com scroll horizontal se necessário */}
@@ -322,144 +298,6 @@ export function Sidebar({
               ))}
             </div>
 
-            {/* Action buttons - sempre visíveis */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: '0.3rem',
-              flexShrink: 0
-            }}>
-              {/* Notification Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNotificationToggle(streamer.id, streamer.name);
-                }}
-                style={{
-                  background: streamer.notificationsEnabled 
-                    ? 'rgba(59, 130, 246, 0.3)' 
-                    : 'rgba(59, 130, 246, 0.1)',
-                  border: streamer.notificationsEnabled 
-                    ? '2px solid rgba(59, 130, 246, 0.6)' 
-                    : '1px solid rgba(59, 130, 246, 0.2)',
-                  borderRadius: '6px',
-                  padding: '0.3rem',
-                  cursor: 'pointer',
-                  color: streamer.notificationsEnabled ? '#93c5fd' : '#3b82f6',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: streamer.notificationsEnabled 
-                    ? '0 0 8px rgba(59, 130, 246, 0.4)' 
-                    : 'none',
-                  width: '32px',
-                  height: '32px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = streamer.notificationsEnabled 
-                    ? 'rgba(59, 130, 246, 0.4)' 
-                    : 'rgba(59, 130, 246, 0.2)';
-                  e.currentTarget.style.borderColor = streamer.notificationsEnabled 
-                    ? 'rgba(59, 130, 246, 0.8)' 
-                    : 'rgba(59, 130, 246, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = streamer.notificationsEnabled 
-                    ? 'rgba(59, 130, 246, 0.3)' 
-                    : 'rgba(59, 130, 246, 0.1)';
-                  e.currentTarget.style.borderColor = streamer.notificationsEnabled 
-                    ? '2px solid rgba(59, 130, 246, 0.6)' 
-                    : '1px solid rgba(59, 130, 246, 0.2)';
-                }}
-              >
-                <Bell size={16} fill={streamer.notificationsEnabled ? 'currentColor' : 'none'} className={bellIconClass} />
-              </button>
-
-              {/* Favorite Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                  handleFavoriteToggle(streamer.id, streamer.name);
-                }}
-                style={{
-                  background: streamer.isFavorite 
-                    ? 'rgba(239, 68, 68, 0.3)' 
-                    : 'rgba(239, 68, 68, 0.1)',
-                  border: streamer.isFavorite 
-                    ? '2px solid rgba(239, 68, 68, 0.6)' 
-                    : '1px solid rgba(239, 68, 68, 0.2)',
-                  borderRadius: '6px',
-                  padding: '0.3rem',
-                  cursor: 'pointer',
-                  color: streamer.isFavorite ? '#fca5a5' : '#ef4444',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: streamer.isFavorite 
-                    ? '0 0 8px rgba(239, 68, 68, 0.4)' 
-                    : 'none',
-                  width: '32px',
-                  height: '32px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = streamer.isFavorite 
-                    ? 'rgba(239, 68, 68, 0.4)' 
-                    : 'rgba(239, 68, 68, 0.2)';
-                  e.currentTarget.style.borderColor = streamer.isFavorite 
-                    ? 'rgba(239, 68, 68, 0.8)' 
-                    : 'rgba(239, 68, 68, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = streamer.isFavorite 
-                    ? 'rgba(239, 68, 68, 0.3)' 
-                    : 'rgba(239, 68, 68, 0.1)';
-                  e.currentTarget.style.borderColor = streamer.isFavorite 
-                    ? '2px solid rgba(239, 68, 68, 0.6)' 
-                    : '1px solid rgba(239, 68, 68, 0.2)';
-                }}
-              >
-                <Heart size={16} fill={streamer.isFavorite ? 'currentColor' : 'none'} className={heartIconClass} />
-              </button>
-
-              {/* Delete Button */}
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const result = await confirmDeleteStreamer(streamer.name);
-                  if (result.isConfirmed) {
-                      onRemoveStreamer(streamer.id);
-                    showSuccessToast('Streamer Eliminado', `${streamer.name} foi removido com sucesso!`);
-                  }
-                    }}
-                    style={{
-                  background: 'rgba(107, 114, 128, 0.1)',
-                  border: '1px solid rgba(107, 114, 128, 0.2)',
-                  borderRadius: '6px',
-                  padding: '0.3rem',
-                      cursor: 'pointer',
-                  color: '#6b7280',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px'
-                    }}
-                    onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'rgba(107, 114, 128, 0.2)';
-                  e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.4)';
-                    }}
-                    onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(107, 114, 128, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.2)';
-                    }}
-                  >
-                <Trash2 size={16} className={trashIconClass} />
-                  </button>
-                </div>
               </div>
           </div>
     );

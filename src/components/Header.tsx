@@ -1,5 +1,5 @@
 import { Settings, Grid3X3, Plus } from 'lucide-react';
-import { useAnimatedClassWithDuration, useHoverAnimation, useInfiniteAnimation } from '../hooks/useAnimatedClass';
+import { useHoverAnimation, useInfiniteAnimation } from '../hooks/useAnimatedClass';
 
 interface HeaderProps {
   onAddStreamer: () => void;
@@ -8,7 +8,7 @@ interface HeaderProps {
 }
 
 export function Header({ onAddStreamer, onOpenOptions, onOpenDashboard }: HeaderProps) {
-  const animatedLogoClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 500);
+  const animatedLogoClass = '';
   const dashboardIconClass = useHoverAnimation('', 'icon-hover-tada');
   const settingsIconClass = useInfiniteAnimation('gear-rotate', '', 2000);
   const plusIconClass = useHoverAnimation('', 'icon-hover-gentle');

@@ -6,7 +6,7 @@ import { AddStreamModal } from './components/AddStreamModal';
 import { OptionsModal } from './components/OptionsModal';
 import { DashboardModal } from './components/DashboardModal';
 import { StreamGrid } from './components/StreamGrid';
-import { ChatPanel } from './components/ChatPanel';
+import { ChatPanel, AvatarButton } from './components/ChatPanel';
 import type { Streamer, Platform } from './types';
 import { useSettings } from './hooks/useSettings';
 import { checkStreamStatus, getStreamInfo, getTwitchStreamData, getKickStreamData } from './services/api';
@@ -188,6 +188,7 @@ const checkStreamerStatusWithPriority = async (streamer: Streamer) => {
 function App() {
   const [streamers, setStreamers] = useState<Streamer[]>([]);
   const [selectedStreamers, setSelectedStreamers] = useState<Streamer[]>([]);
+  const [activeChatStreamerId, setActiveChatStreamerId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -231,7 +232,6 @@ function App() {
     if (!isResizing) return;
     
     const handleMouseMove = (e: MouseEvent) => {
-      e.preventDefault();
       if (isResizing === 'sidebar') {
         // Sidebar à esquerda (chat à direita): arrastar para direita aumenta (diff positivo)
         // Sidebar à direita (chat à esquerda): arrastar para esquerda aumenta (diff negativo vira positivo)
@@ -255,14 +255,14 @@ function App() {
       setIsResizing(null);
     };
     
-    document.addEventListener('mousemove', handleMouseMove, { passive: false });
-    document.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -272,6 +272,18 @@ function App() {
   useEffect(() => {
     selectedStreamersRef.current = selectedStreamers;
   }, [selectedStreamers]);
+  
+  // Inicializar chat ativo quando streamers são selecionados
+  useEffect(() => {
+    if (selectedStreamers.length > 0 && !activeChatStreamerId) {
+      setActiveChatStreamerId(selectedStreamers[0].id);
+    } else if (selectedStreamers.length === 0) {
+      setActiveChatStreamerId(null);
+    } else if (activeChatStreamerId && !selectedStreamers.some(s => s.id === activeChatStreamerId)) {
+      // Se o chat ativo não está mais na lista de selecionados, mudar para o primeiro
+      setActiveChatStreamerId(selectedStreamers[0].id);
+    }
+  }, [selectedStreamers, activeChatStreamerId]);
   
   // Verificar e corrigir limite de visualizadores quando o limite muda
   useEffect(() => {
@@ -585,17 +597,52 @@ function App() {
         {/* Chat à esquerda */}
         {settings.chatPosition === 'left' && chatVisible && (
           <div style={{ 
+            display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s ease',
             minWidth: 250,
             maxWidth: 600
           }}>
-            <ChatPanel 
-              streamers={streamers}
-              selectedStreamer={selectedStreamers[0]}
-              viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-            />
+            {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
+            <div 
+              className="avatars-column-scroll" 
+              style={{
+                width: selectedStreamers.length > 1 ? '60px' : '0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: selectedStreamers.length > 1 ? '0.5rem' : '0',
+                background: 'rgba(0, 0, 0, 0.3)',
+                borderRight: selectedStreamers.length > 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1), border 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                opacity: selectedStreamers.length > 1 ? 1 : 0
+              }}>
+              {selectedStreamers.length > 1 && selectedStreamers.map((streamer) => (
+                <AvatarButton
+                  key={streamer.id}
+                  streamer={streamer}
+                  isActive={activeChatStreamerId === streamer.id}
+                  onClick={() => setActiveChatStreamerId(streamer.id)}
+                  vertical={true}
+                />
+              ))}
+            </div>
+            
+            {/* ChatPanel */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <ChatPanel 
+                streamers={streamers}
+                selectedStreamer={selectedStreamers[0]}
+                viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+                activeChatStreamerId={activeChatStreamerId}
+                onActiveChatStreamerChange={setActiveChatStreamerId}
+                renderAvatarsInSidebar={true}
+              />
+            </div>
             {/* Handle de redimensionamento */}
             <div
               onMouseDown={(e) => handleResizeStart('chat', e)}
@@ -663,14 +710,14 @@ function App() {
               onClick={() => setChatVisible(false)}
               style={{
                 position: 'absolute',
-                right: '-15px',
+                right: '-12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '30px',
-                height: '60px',
+                width: '24px',
+                height: '48px',
                 background: 'rgba(147, 51, 234, 0.8)',
                 border: '1px solid rgba(147, 51, 234, 0.5)',
-                borderRadius: '0 8px 8px 0',
+                borderRadius: '0 6px 6px 0',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -682,14 +729,14 @@ function App() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
-                e.currentTarget.style.width = '35px';
+                e.currentTarget.style.width = '28px';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
-                e.currentTarget.style.width = '30px';
+                e.currentTarget.style.width = '24px';
               }}
             >
-              <span style={{ fontSize: '18px' }}>◀</span>
+              <span style={{ fontSize: '16px' }}>◀</span>
             </button>
           </div>
         )}
@@ -703,8 +750,8 @@ function App() {
               left: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '30px',
-              height: '60px',
+              width: '24px',
+              height: '48px',
               background: 'rgba(147, 51, 234, 0.8)',
               border: '1px solid rgba(147, 51, 234, 0.5)',
               borderRadius: '0 8px 8px 0',
@@ -741,7 +788,6 @@ function App() {
       }}>
         <Sidebar 
           streamers={streamers}
-          onRemoveStreamer={handleRemoveStreamer}
           onToggleViewing={(streamerId) => {
             const streamer = streamers.find(s => s.id === streamerId);
             if (streamer) {
@@ -749,8 +795,6 @@ function App() {
             }
           }}
           viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-          onToggleFavorite={handleToggleFavorite}
-          onToggleNotifications={handleToggleNotifications}
           settings={settings}
         />
             {/* Handle de redimensionamento */}
@@ -820,14 +864,14 @@ function App() {
               onClick={() => setSidebarVisible(false)}
               style={{
                 position: 'absolute',
-                right: '-15px',
+                right: '-12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '30px',
-                height: '60px',
+                width: '24px',
+                height: '48px',
                 background: 'rgba(147, 51, 234, 0.8)',
                 border: '1px solid rgba(147, 51, 234, 0.5)',
-                borderRadius: '0 8px 8px 0',
+                borderRadius: '0 6px 6px 0',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -839,14 +883,14 @@ function App() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
-                e.currentTarget.style.width = '35px';
+                e.currentTarget.style.width = '28px';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
-                e.currentTarget.style.width = '30px';
+                e.currentTarget.style.width = '24px';
               }}
             >
-              <span style={{ fontSize: '18px' }}>◀</span>
+              <span style={{ fontSize: '16px' }}>◀</span>
             </button>
           </div>
         )}
@@ -860,8 +904,8 @@ function App() {
               left: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '30px',
-              height: '60px',
+              width: '24px',
+              height: '48px',
               background: 'rgba(147, 51, 234, 0.8)',
               border: '1px solid rgba(147, 51, 234, 0.5)',
               borderRadius: '0 8px 8px 0',
@@ -906,6 +950,8 @@ function App() {
                 handleToggleViewing(streamer);
               }
             }}
+            onToggleNotifications={handleToggleNotifications}
+            onToggleFavorite={handleToggleFavorite}
           />
         </div>
         
@@ -920,7 +966,6 @@ function App() {
           }}>
             <Sidebar 
               streamers={streamers}
-              onRemoveStreamer={handleRemoveStreamer}
               onToggleViewing={(streamerId) => {
                 const streamer = streamers.find(s => s.id === streamerId);
                 if (streamer) {
@@ -928,8 +973,6 @@ function App() {
                 }
               }}
               viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-              onToggleFavorite={handleToggleFavorite}
-              onToggleNotifications={handleToggleNotifications}
               settings={settings}
             />
             {/* Handle de redimensionamento */}
@@ -994,14 +1037,14 @@ function App() {
               onClick={() => setSidebarVisible(false)}
               style={{
                 position: 'absolute',
-                left: '-15px',
+                left: '-12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '30px',
-                height: '60px',
+                width: '24px',
+                height: '48px',
                 background: 'rgba(147, 51, 234, 0.8)',
                 border: '1px solid rgba(147, 51, 234, 0.5)',
-                borderRadius: '8px 0 0 8px',
+                borderRadius: '6px 0 0 6px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -1013,14 +1056,14 @@ function App() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
-                e.currentTarget.style.width = '35px';
+                e.currentTarget.style.width = '28px';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
-                e.currentTarget.style.width = '30px';
+                e.currentTarget.style.width = '24px';
               }}
             >
-              <span style={{ fontSize: '18px' }}>▶</span>
+              <span style={{ fontSize: '16px' }}>▶</span>
             </button>
           </div>
         )}
@@ -1034,8 +1077,8 @@ function App() {
               right: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '30px',
-              height: '60px',
+              width: '24px',
+              height: '48px',
               background: 'rgba(147, 51, 234, 0.8)',
               border: '1px solid rgba(147, 51, 234, 0.5)',
               borderRadius: '8px 0 0 8px',
@@ -1064,17 +1107,55 @@ function App() {
         {/* Chat à direita */}
         {settings.chatPosition === 'right' && chatVisible && (
           <div style={{ 
+            display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
-            transition: isResizing === 'chat' ? 'none' : 'width 0.3s ease',
+            transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
             maxWidth: 600
           }}>
-          <ChatPanel 
-            streamers={streamers}
-            selectedStreamer={selectedStreamers[0]}
-            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-          />
+            {/* ChatPanel */}
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              overflow: 'hidden',
+              transition: isResizing === 'chat' ? 'none' : 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }}>
+              <ChatPanel 
+                streamers={streamers}
+                selectedStreamer={selectedStreamers[0]}
+                viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+                activeChatStreamerId={activeChatStreamerId}
+                onActiveChatStreamerChange={setActiveChatStreamerId}
+                renderAvatarsInSidebar={true}
+              />
+            </div>
+            
+            {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
+            <div className={`avatars-column-scroll`} style={{
+              width: selectedStreamers.length > 1 ? '60px' : '0px',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: selectedStreamers.length > 1 ? '0.5rem' : '0',
+              padding: selectedStreamers.length > 1 ? '0.5rem' : '0',
+              background: 'rgba(0, 0, 0, 0.3)',
+              borderLeft: selectedStreamers.length > 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+              overflow: 'hidden',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              opacity: selectedStreamers.length > 1 ? 1 : 0,
+              transform: selectedStreamers.length > 1 ? 'translateX(0)' : 'translateX(-20px)'
+            }}>
+              {selectedStreamers.map((streamer) => (
+                <AvatarButton
+                  key={streamer.id}
+                  streamer={streamer}
+                  isActive={activeChatStreamerId === streamer.id}
+                  onClick={() => setActiveChatStreamerId(streamer.id)}
+                  vertical={true}
+                />
+              ))}
+            </div>
             {/* Handle de redimensionamento */}
             <div
               onMouseDown={(e) => handleResizeStart('chat', e)}
@@ -1137,14 +1218,14 @@ function App() {
               onClick={() => setChatVisible(false)}
               style={{
                 position: 'absolute',
-                left: '-15px',
+                left: '-12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '30px',
-                height: '60px',
+                width: '24px',
+                height: '48px',
                 background: 'rgba(147, 51, 234, 0.8)',
                 border: '1px solid rgba(147, 51, 234, 0.5)',
-                borderRadius: '8px 0 0 8px',
+                borderRadius: '6px 0 0 6px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -1156,14 +1237,14 @@ function App() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
-                e.currentTarget.style.width = '35px';
+                e.currentTarget.style.width = '28px';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
-                e.currentTarget.style.width = '30px';
+                e.currentTarget.style.width = '24px';
               }}
             >
-              <span style={{ fontSize: '18px' }}>▶</span>
+              <span style={{ fontSize: '16px' }}>▶</span>
             </button>
           </div>
         )}
@@ -1177,8 +1258,8 @@ function App() {
               right: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '30px',
-              height: '60px',
+              width: '24px',
+              height: '48px',
               background: 'rgba(147, 51, 234, 0.8)',
               border: '1px solid rgba(147, 51, 234, 0.5)',
               borderRadius: '8px 0 0 8px',

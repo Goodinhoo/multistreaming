@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Streamer } from '../types';
 import { getKickChatUrl } from '../services/kickApi';
 import { KickChatEmbed } from './KickChatEmbed';
@@ -7,27 +7,118 @@ interface ChatPanelProps {
   streamers: Streamer[];
   selectedStreamer?: Streamer;
   viewingStreamers: Set<string>;
+  activeChatStreamerId?: string | null;
+  onActiveChatStreamerChange?: (streamerId: string) => void;
+  renderAvatarsInSidebar?: boolean;
 }
 
-export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
+interface AvatarButtonProps {
+  streamer: Streamer;
+  isActive: boolean;
+  onClick: () => void;
+  vertical?: boolean;
+}
+
+export function AvatarButton({ streamer, isActive, onClick, vertical = false }: AvatarButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: vertical ? '0.5rem' : '0.5rem',
+        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        borderBottom: !vertical && isActive ? `2px solid ${streamer.status === 'online' ? '#10b981' : '#6b7280'}` : !vertical ? '2px solid transparent' : 'none',
+        borderRight: vertical && isActive ? `2px solid ${streamer.status === 'online' ? '#10b981' : '#6b7280'}` : vertical ? '2px solid transparent' : 'none',
+        position: 'relative',
+        minWidth: vertical ? 'auto' : '60px',
+        width: vertical ? '100%' : 'auto',
+        flexShrink: 0
+      }}
+      onMouseOver={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+        }
+      }}
+      onMouseOut={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }
+      }}
+    >
+      <img
+        src={streamer.avatar}
+        alt={streamer.name}
+        style={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          objectFit: 'cover'
+        }}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/6B7280/FFFFFF?text=?';
+        }}
+      />
+      {/* Status indicator */}
+      <div style={{
+        position: 'absolute',
+        bottom: '2px',
+        right: '2px',
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        backgroundColor: streamer.status === 'online' ? '#10b981' : '#6b7280',
+        border: '2px solid #1f2937'
+      }} />
+    </button>
+  );
+}
+
+export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, onActiveChatStreamerChange, renderAvatarsInSidebar = false }: ChatPanelProps) {
   const [activeTab, setActiveTab] = useState<'twitch' | 'youtube' | 'kick'>('twitch');
-  const [activeStreamerId, setActiveStreamerId] = useState<string | null>(null);
+  const [internalActiveStreamerId, setInternalActiveStreamerId] = useState<string | null>(null);
+  
+  // Usar activeChatStreamerId externo se fornecido, senão usar o interno
+  const activeStreamerId = activeChatStreamerId !== undefined ? activeChatStreamerId : internalActiveStreamerId;
+  
+  const setActiveStreamerId = useCallback((id: string | null) => {
+    if (onActiveChatStreamerChange && id) {
+      onActiveChatStreamerChange(id);
+    } else {
+      setInternalActiveStreamerId(id);
+    }
+  }, [onActiveChatStreamerChange]);
 
   // Obter streamers que estão sendo visualizados
   const activeStreamers = streamers.filter(s => viewingStreamers.has(s.id));
 
-  // Definir streamer ativo inicial
+  // Sincronizar com o streamer ativo externo quando fornecido
   useEffect(() => {
+    // Se está sendo controlado externamente através de activeChatStreamerId
+    if (activeChatStreamerId !== undefined && onActiveChatStreamerChange) {
+      // Garantir que o estado interno está sincronizado com o externo
+      if (activeChatStreamerId !== internalActiveStreamerId) {
+        setInternalActiveStreamerId(activeChatStreamerId);
+      }
+      return;
+    }
+    
+    // Caso contrário, inicializar internamente
     if (activeStreamers.length > 0) {
-      if (!activeStreamerId) {
-        setActiveStreamerId(activeStreamers[0].id);
-      } else if (!activeStreamers.some(s => s.id === activeStreamerId)) {
-        setActiveStreamerId(activeStreamers[0].id);
+      if (!internalActiveStreamerId) {
+        setInternalActiveStreamerId(activeStreamers[0].id);
+      } else if (!activeStreamers.some(s => s.id === internalActiveStreamerId)) {
+        setInternalActiveStreamerId(activeStreamers[0].id);
       }
     } else {
-      setActiveStreamerId(null);
+      setInternalActiveStreamerId(null);
     }
-  }, [activeStreamers, activeStreamerId]);
+  }, [activeStreamers, internalActiveStreamerId, activeChatStreamerId, onActiveChatStreamerChange]);
 
   // Definir aba ativa inicial baseada no streamer ativo
   useEffect(() => {
@@ -155,27 +246,8 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
       overflow: 'hidden',
       position: 'relative'
     }}>
-      {/* Indicador de múltiplos chats */}
-      {activeStreamers.length > 1 && (
-        <div style={{
-          position: 'absolute',
-          top: '0.5rem',
-          right: '0.5rem',
-          zIndex: 20,
-          background: 'rgba(147, 51, 234, 0.9)',
-          color: 'white',
-          padding: '0.25rem 0.5rem',
-          borderRadius: '12px',
-          fontSize: '0.7rem',
-          fontWeight: '600',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-        }}>
-          {activeStreamers.length} chats
-        </div>
-      )}
-      {/* Tabs dos streamers - sempre mostrar quando há múltiplos */}
-      {activeStreamers.length > 1 && (
+      {/* Tabs dos streamers - mostrar apenas se não estiver renderizando na sidebar */}
+      {activeStreamers.length > 1 && !renderAvatarsInSidebar && (
         <div style={{
           display: 'flex',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
@@ -187,60 +259,12 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
           scrollbarColor: 'rgba(147, 51, 234, 0.5) transparent'
         }}>
           {activeStreamers.map((streamer) => (
-            <button
+            <AvatarButton
               key={streamer.id}
+              streamer={streamer}
+              isActive={activeStreamerId === streamer.id}
               onClick={() => setActiveStreamerId(streamer.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.5rem',
-                backgroundColor: activeStreamerId === streamer.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                borderBottom: activeStreamerId === streamer.id ? `2px solid ${streamer.status === 'online' ? '#10b981' : '#6b7280'}` : '2px solid transparent',
-                position: 'relative',
-                minWidth: '60px',
-                flexShrink: 0
-              }}
-              onMouseOver={(e) => {
-                if (activeStreamerId !== streamer.id) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (activeStreamerId !== streamer.id) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <img
-                src={streamer.avatar}
-                alt={streamer.name}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  objectFit: 'cover'
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/6B7280/FFFFFF?text=?';
-                }}
-              />
-              {/* Status indicator */}
-              <div style={{
-                position: 'absolute',
-                bottom: '2px',
-                right: '2px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: streamer.status === 'online' ? '#10b981' : '#6b7280',
-                border: '2px solid #1f2937'
-              }} />
-            </button>
+            />
           ))}
         </div>
       )}

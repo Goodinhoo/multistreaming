@@ -3,7 +3,8 @@ import { X, Edit, Trash2, Settings, Users, Sliders, Bell, Heart, Tv, Play, Zap }
 import type { Streamer } from '../types';
 import type { AppSettings } from '../types/settings';
 import { EditStreamerModal } from './EditStreamerModal';
-import { useAnimatedClassWithDuration } from '../hooks/useAnimatedClass';
+import { useAnimatedClass } from '../hooks/useAnimatedClass';
+
 import { confirmSaveSettings, confirmReduceViewers, confirmDeleteStreamer, confirmUnsavedChanges, showSuccessToast, confirmExportData, confirmImportData, confirmClearAllData, showImportSuccess, showExportSuccess, showClearSuccess } from '../services/sweetAlert';
 import { BackupService } from '../services/backupService';
 
@@ -27,8 +28,8 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
   const [editingStreamer, setEditingStreamer] = useState<Streamer | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'streamers' | 'filters' | 'stats' | 'updates'>('general');
   
-  const animatedModalClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 400);
-  const animatedCardClass = useAnimatedClassWithDuration('', 'animate__slideInUp', 600);
+  const animatedModalClass = useAnimatedClass('', 'animate__fadeIn');
+  const animatedCardClass = useAnimatedClass('', 'animate__fadeIn');
   const settingsIconClass = '';
   const slidersIconClass = '';
   const usersIconClass = '';
@@ -578,17 +579,17 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                         </div>
                         
                         <button
-                          onClick={() => handleSettingChange('maxViewers', Math.min(8, pendingSettings.maxViewers + 1))}
-                          disabled={pendingSettings.maxViewers >= 8}
+                          onClick={() => handleSettingChange('maxViewers', Math.min(12, pendingSettings.maxViewers + 1))}
+                          disabled={pendingSettings.maxViewers >= 12}
                           style={{
                             width: '32px',
                             height: '32px',
                             borderRadius: '50%',
-                            background: pendingSettings.maxViewers >= 8 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(147, 51, 234, 0.2)',
+                            background: pendingSettings.maxViewers >= 12 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(147, 51, 234, 0.2)',
                             border: '1px solid',
-                            borderColor: pendingSettings.maxViewers >= 8 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(147, 51, 234, 0.3)',
-                            color: pendingSettings.maxViewers >= 8 ? 'rgba(255, 255, 255, 0.3)' : '#9333ea',
-                            cursor: pendingSettings.maxViewers >= 8 ? 'not-allowed' : 'pointer',
+                            borderColor: pendingSettings.maxViewers >= 12 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(147, 51, 234, 0.3)',
+                            color: pendingSettings.maxViewers >= 12 ? 'rgba(255, 255, 255, 0.3)' : '#9333ea',
+                            cursor: pendingSettings.maxViewers >= 12 ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -2302,6 +2303,51 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                     }}>
                       <span style={{ fontSize: '1.5rem' }}>🆕</span>
                       <div>
+                        <h4 style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: 'white',
+                          margin: 0
+                        }}>
+                          Correções de Layout e Limite de Visualizadores
+                        </h4>
+                        <p style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          26/10/2025
+                        </p>
+                      </div>
+                    </div>
+                    <ul style={{
+                      margin: 0,
+                      paddingLeft: '1.5rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.6'
+                    }}>
+                      <li>Botões do footer fixos à direita mesmo sem título</li>
+                      <li>Limite máximo de visualizadores aumentado para 12</li>
+                      <li>Alinhamento consistente dos controles</li>
+                    </ul>
+                  </div>
+
+                  {/* Correções no Chat da Twitch */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }} className={animatedCardClass}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>💬</span>
+                      <div style={{ flex: 1 }}>
                         <h4 style={{
                           fontSize: '1rem',
                           fontWeight: '600',

@@ -3,7 +3,8 @@ import { X, TrendingUp, Users, Eye, Clock, Activity, Calendar } from 'lucide-rea
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 import type { Streamer } from '../types';
 import type { AppSettings } from '../types/settings';
-import { useAnimatedClassWithDuration } from '../hooks/useAnimatedClass';
+import { useAnimatedClass } from '../hooks/useAnimatedClass';
+
 import { getTwitchStreamData, getKickStreamData } from '../services/api';
 
 interface DashboardModalProps {
@@ -15,7 +16,7 @@ interface DashboardModalProps {
 }
 
 export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }: DashboardModalProps) {
-  const animatedModalClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 400);
+  const animatedModalClass = useAnimatedClass('', 'animate__fadeIn');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'comparison' | 'history' | 'recommendations'>('overview');
   const [sessionStart] = useState(new Date());
@@ -159,7 +160,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
         };
       })
       .sort((a, b) => b.totalViewers - a.totalViewers)
-      .slice(0, 5);
+    .slice(0, 5);
   }, [onlineStreamers, platformViewers]);
 
   if (!isOpen) return null;
@@ -1297,20 +1298,20 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                       alignItems: 'flex-end',
                       gap: '0.25rem'
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 1rem',
-                        background: 'rgba(239, 68, 68, 0.2)',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(239, 68, 68, 0.3)'
-                      }}>
-                        <Eye size={14} style={{ color: '#ef4444' }} />
-                        <span style={{
-                          fontSize: '0.875rem',
-                          fontWeight: '700',
-                          color: '#ef4444'
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem 1rem',
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.3)'
+                    }}>
+                      <Eye size={14} style={{ color: '#ef4444' }} />
+                      <span style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        color: '#ef4444'
                       }}>
                         {(streamer as Streamer & { totalViewers: number; platformBreakdown?: { twitch?: number; kick?: number } }).totalViewers.toLocaleString('pt-PT')}
                       </span>
@@ -1834,21 +1835,21 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                               <span
                                 key={platform.name}
                                 style={{
-                                  padding: '0.25rem 0.5rem',
-                                  borderRadius: '4px',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
                                   background: platform.name === 'twitch' 
-                                    ? 'rgba(145, 70, 255, 0.2)' 
-                                    : 'rgba(0, 255, 0, 0.2)',
+                              ? 'rgba(145, 70, 255, 0.2)' 
+                              : 'rgba(0, 255, 0, 0.2)',
                                   color: platform.name === 'twitch' 
-                                    ? '#9146ff' 
-                                    : '#00ff00',
-                                  fontWeight: '600',
+                              ? '#9146ff' 
+                              : '#00ff00',
+                            fontWeight: '600',
                                   textTransform: 'uppercase',
                                   fontSize: '0.7rem'
                                 }}
                               >
                                 {platform.name}
-                              </span>
+                          </span>
                             ))}
                           </div>
                         </div>
@@ -1943,7 +1944,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
               }}>
                 <h2 style={{
                   fontSize: '2rem',
-                  fontWeight: '700',
+                          fontWeight: '700',
                   background: 'linear-gradient(90deg, #9333ea 0%, #fbbf24 100%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
@@ -1952,38 +1953,38 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                 }}>
                   💡 Recomendações
                 </h2>
-                <p style={{
+                        <p style={{
                   fontSize: '1rem',
                   color: 'rgba(255, 255, 255, 0.7)',
-                  margin: 0
-                }}>
+                          margin: 0
+                        }}>
                   Dicas e sugestões para melhorar sua experiência
-                </p>
-              </div>
+                        </p>
+                  </div>
 
               {/* Cards de Recomendações */}
-              <div style={{
-                display: 'grid',
+                  <div style={{
+                    display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                 gap: '1.5rem',
                 marginBottom: '2rem'
               }}>
                 {/* Recomendação 1 */}
-                <div style={{
+                    <div style={{
                   background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
                   border: '1px solid rgba(59, 130, 246, 0.3)'
-                }}>
-                  <div style={{
-                    fontSize: '2rem',
+                    }}>
+                      <div style={{
+                        fontSize: '2rem',
                     marginBottom: '1rem'
-                  }}>
+                      }}>
                     📊
-                  </div>
+                      </div>
                   <h3 style={{
                     fontSize: '1.1rem',
-                    fontWeight: '700',
+                        fontWeight: '700',
                     color: 'white',
                     marginBottom: '0.5rem'
                   }}>
@@ -1991,16 +1992,16 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                   </h3>
                   <p style={{
                     fontSize: '0.875rem',
-                    color: 'rgba(255, 255, 255, 0.7)',
+                        color: 'rgba(255, 255, 255, 0.7)',
                     lineHeight: '1.5',
                     margin: 0
-                  }}>
+                      }}>
                     Você tem {totalStreamers} streamer{totalStreamers !== 1 ? 's' : ''}. Considere adicionar mais para aumentar suas opções de visualização.
                   </p>
-                </div>
+                  </div>
 
                 {/* Recomendação 2 */}
-                <div style={{
+                  <div style={{
                   background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
@@ -2011,43 +2012,43 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                     marginBottom: '1rem'
                   }}>
                     🎯
-                  </div>
-                  <h3 style={{
+                      </div>
+                        <h3 style={{
                     fontSize: '1.1rem',
-                    fontWeight: '700',
+                          fontWeight: '700',
                     color: 'white',
                     marginBottom: '0.5rem'
-                  }}>
+                        }}>
                     Ative Notificações
-                  </h3>
-                  <p style={{
-                    fontSize: '0.875rem',
+                        </h3>
+                        <p style={{
+                          fontSize: '0.875rem',
                     color: 'rgba(255, 255, 255, 0.7)',
                     lineHeight: '1.5',
-                    margin: 0
-                  }}>
+                          margin: 0
+                        }}>
                     {onlineStreamers.length > 0 
                       ? `Você tem ${onlineStreamers.length} streamer${onlineStreamers.length !== 1 ? 's' : ''} online agora. Ative notificações para não perder quando seus favoritos entrarem ao vivo.`
                       : 'Ative notificações para seus streamers favoritos e seja avisado quando entrarem ao vivo.'}
-                  </p>
-                </div>
+                        </p>
+                  </div>
 
                 {/* Recomendação 3 */}
-                <div style={{
+                  <div style={{
                   background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
                   border: '1px solid rgba(147, 51, 234, 0.3)'
-                }}>
-                  <div style={{
-                    fontSize: '2rem',
+                    }}>
+                      <div style={{
+                        fontSize: '2rem',
                     marginBottom: '1rem'
-                  }}>
+                      }}>
                     ⭐
-                  </div>
+                      </div>
                   <h3 style={{
                     fontSize: '1.1rem',
-                    fontWeight: '700',
+                        fontWeight: '700',
                     color: 'white',
                     marginBottom: '0.5rem'
                   }}>
@@ -2055,7 +2056,7 @@ export function DashboardModal({ isOpen, onClose, streamers, viewingStreamers }:
                   </h3>
                   <p style={{
                     fontSize: '0.875rem',
-                    color: 'rgba(255, 255, 255, 0.7)',
+                        color: 'rgba(255, 255, 255, 0.7)',
                     lineHeight: '1.5',
                     margin: 0
                   }}>
