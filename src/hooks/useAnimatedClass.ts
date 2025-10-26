@@ -43,6 +43,11 @@ export function useInfiniteAnimation(
     return baseClass;
   }
   
+  // Se animationClass estiver vazio, retornar apenas baseClass (para usar animações CSS customizadas)
+  if (!animationClass) {
+    return baseClass;
+  }
+  
   return `${baseClass} animate__animated ${animationClass} animate__infinite animate__duration-${duration}`;
 }
 

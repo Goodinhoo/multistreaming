@@ -16,6 +16,7 @@ export interface AppSettings {
   
   // Notificações Avançadas
   notificationSound: boolean;
+  notificationSoundFile: string; // Nome do arquivo de som escolhido
   desktopNotifications: boolean;
   notifyOnlyFavorites: boolean;
   notificationVolume: number;
@@ -39,6 +40,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showOnlyFavorites: false,
   sortBy: 'name',
   notificationSound: true,
+  notificationSoundFile: 'notification.wav', // Som padrão
   desktopNotifications: false,
   notifyOnlyFavorites: false,
   notificationVolume: 50,

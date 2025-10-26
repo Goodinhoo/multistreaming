@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Sidebar } from './components/Sidebar';
@@ -13,6 +13,89 @@ import { checkStreamStatus, getStreamInfo, getTwitchStreamData, getKickStreamDat
 import { showSuccessToast } from './services/sweetAlert';
 
 import './App.css';
+
+// Ref para rastrear áudios em reprodução e evitar múltiplas reproduções
+const activeAudios = new Set<HTMLAudioElement>();
+
+// Função para tocar som de notificação
+const playNotificationSound = (volume: number = 50, soundFile: string = 'notification.wav') => {
+  try {
+    // Limpar áudios que já terminaram
+    activeAudios.forEach(audio => {
+      if (audio.ended || audio.paused) {
+        activeAudios.delete(audio);
+      }
+    });
+    
+    // Tentar carregar arquivo de som personalizado
+    const audioPath = `/sounds/${soundFile}`;
+    const audio = new Audio(audioPath);
+    audio.volume = volume / 100;
+    
+    // Adicionar ao conjunto de áudios ativos
+    activeAudios.add(audio);
+    
+    // Limpar quando terminar
+    audio.addEventListener('ended', () => {
+      activeAudios.delete(audio);
+    });
+    
+    audio.addEventListener('error', () => {
+      activeAudios.delete(audio);
+      // Se falhar, tentar formato padrão ou fallback
+      if (soundFile !== 'notification.wav') {
+        playNotificationSound(volume, 'notification.wav');
+      } else {
+        playFallbackSound(volume);
+      }
+    });
+    
+    audio.play().catch(() => {
+      activeAudios.delete(audio);
+      // Tentar fallback se não conseguir tocar
+      playFallbackSound(volume);
+    });
+    
+  } catch (err) {
+    console.error('Erro ao carregar som:', err);
+    playFallbackSound(volume);
+  }
+};
+
+// Função fallback para criar som programaticamente
+const playFallbackSound = (volume: number) => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(volume / 100 * 0.3, audioContext.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (err) {
+    console.error('Erro ao tocar som de fallback:', err);
+  }
+};
+
+// Expor função globalmente para teste
+declare global {
+  interface Window {
+    testNotificationSound?: (soundFile?: string, volume?: number) => void;
+  }
+}
+window.testNotificationSound = (soundFile?: string, volume?: number) => {
+  playNotificationSound(volume || 50, soundFile || 'notification.wav');
+};
 
 // Função para determinar a plataforma prioritária para avatar e status
 const getPriorityPlatform = (platforms: Partial<Record<Platform, string>>) => {
@@ -108,9 +191,82 @@ function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [chatVisible, setChatVisible] = useState(true);
+  const DEFAULT_SIDEBAR_WIDTH = 320;
+  const DEFAULT_CHAT_WIDTH = 320;
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
+  const [isResizing, setIsResizing] = useState<'sidebar' | 'chat' | null>(null);
+  const [hoveredResizer, setHoveredResizer] = useState<'sidebar' | 'chat' | null>(null);
+  
+  // Verificar se as larguras foram alteradas do padrão
+  const sidebarWidthChanged = sidebarWidth !== DEFAULT_SIDEBAR_WIDTH;
+  const chatWidthChanged = chatWidth !== DEFAULT_CHAT_WIDTH;
+  const resizeStartX = useRef<number>(0);
+  const resizeStartWidth = useRef<number>(0);
   const { settings, updateSettings } = useSettings();
   const intervalRef = useRef<number | null>(null);
   const selectedStreamersRef = useRef(selectedStreamers);
+  
+  // Função para resetar larguras ao padrão
+  const resetColumnWidth = useCallback((type: 'sidebar' | 'chat') => {
+    if (type === 'sidebar') {
+      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    } else {
+      setChatWidth(DEFAULT_CHAT_WIDTH);
+    }
+  }, []);
+  
+  // Handler para iniciar redimensionamento
+  const handleResizeStart = useCallback((type: 'sidebar' | 'chat', e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(type);
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = type === 'sidebar' ? sidebarWidth : chatWidth;
+  }, [sidebarWidth, chatWidth]);
+  
+  // Handler de mouse move global
+  useEffect(() => {
+    if (!isResizing) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      if (isResizing === 'sidebar') {
+        // Sidebar à esquerda (chat à direita): arrastar para direita aumenta (diff positivo)
+        // Sidebar à direita (chat à esquerda): arrastar para esquerda aumenta (diff negativo vira positivo)
+        const diff = settings.chatPosition === 'right' 
+          ? e.clientX - resizeStartX.current // Normal: arrastar para direita aumenta
+          : resizeStartX.current - e.clientX; // Invertido: arrastar para esquerda aumenta
+        const newWidth = Math.max(250, Math.min(600, resizeStartWidth.current + diff));
+        setSidebarWidth(newWidth);
+      } else if (isResizing === 'chat') {
+        // Para chat à direita: arrastar para esquerda aumenta (diff negativo vira positivo)
+        // Para chat à esquerda: arrastar para direita aumenta (diff positivo)
+        const diff = settings.chatPosition === 'right' 
+          ? resizeStartX.current - e.clientX // Invertido: arrastar para esquerda aumenta
+          : e.clientX - resizeStartX.current; // Normal: arrastar para direita aumenta
+        const newWidth = Math.max(250, Math.min(600, resizeStartWidth.current + diff));
+        setChatWidth(newWidth);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(null);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove, { passive: false });
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, settings.chatPosition]);
   
   // Atualizar ref quando selectedStreamers muda
   useEffect(() => {
@@ -207,6 +363,11 @@ function App() {
     }
 
     if (streamers.length === 0) return;
+    
+    // Se autoRefresh estiver desativado, não fazer verificações periódicas
+    if (!settings.autoRefresh) {
+      return;
+    }
 
     // Verificar imediatamente apenas uma vez, mas com delay
     const initialCheck = async () => {
@@ -218,13 +379,97 @@ function App() {
     };
     initialCheck();
 
-    // Configurar intervalo para verificações periódicas
+    // Configurar intervalo para verificações periódicas usando refreshInterval
+    const intervalMs = (settings.refreshInterval || 30) * 1000;
     intervalRef.current = setInterval(async () => {
+      const currentStreamers = streamers;
       const updatedStreamers = await Promise.all(
-        streamers.map(checkStreamerStatusWithPriority)
+        currentStreamers.map(checkStreamerStatusWithPriority)
       );
+      
+      // Verificar mudanças de status e enviar notificações ANTES de atualizar o estado
+      updatedStreamers.forEach((updatedStreamer) => {
+        const oldStreamer = currentStreamers.find(s => s.id === updatedStreamer.id);
+        // Verificar se o streamer mudou de offline para online E não estava online antes
+        if (oldStreamer && oldStreamer.status === 'offline' && updatedStreamer.status === 'online') {
+          // Streamer ficou online - verificar se deve notificar
+          const shouldNotify = updatedStreamer.notificationsEnabled && 
+            (settings.notifications && (!settings.notifyOnlyFavorites || updatedStreamer.isFavorite));
+          
+          if (shouldNotify) {
+            console.log(`🔔 Notificando: ${updatedStreamer.name} ficou online`);
+            // Solicitar permissão para notificações desktop
+            if (settings.desktopNotifications && 'Notification' in window) {
+              if (Notification.permission === 'granted') {
+                try {
+                  new Notification(`${updatedStreamer.name} está ao vivo! 🎬`, {
+                    body: updatedStreamer.streamInfo?.game || 'Assistir agora',
+                    icon: updatedStreamer.avatar,
+                    badge: updatedStreamer.avatar,
+                    tag: `streamer-${updatedStreamer.id}`,
+                    requireInteraction: false
+                  });
+                } catch (error) {
+                  console.error('Erro ao criar notificação:', error);
+                  // Fallback: tentar sem ícone se houver erro
+                  try {
+                    new Notification(`${updatedStreamer.name} está ao vivo! 🎬`, {
+                      body: updatedStreamer.streamInfo?.game || 'Assistir agora',
+                      tag: `streamer-${updatedStreamer.id}`
+                    });
+                  } catch (fallbackError) {
+                    console.error('Erro ao criar notificação (fallback):', fallbackError);
+                  }
+                }
+              } else if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                  if (permission === 'granted') {
+                    try {
+                      new Notification(`${updatedStreamer.name} está ao vivo! 🎬`, {
+                        body: updatedStreamer.streamInfo?.game || 'Assistir agora',
+                        icon: updatedStreamer.avatar,
+                        badge: updatedStreamer.avatar,
+                        tag: `streamer-${updatedStreamer.id}`
+                      });
+                    } catch (error) {
+                      console.error('Erro ao criar notificação após permissão:', error);
+                      // Fallback simples
+                      try {
+                        new Notification(`${updatedStreamer.name} está ao vivo! 🎬`, {
+                          body: updatedStreamer.streamInfo?.game || 'Assistir agora',
+                          tag: `streamer-${updatedStreamer.id}`
+                        });
+                      } catch (fallbackError) {
+                        console.error('Erro ao criar notificação (fallback):', fallbackError);
+                      }
+                    }
+                  }
+                }).catch(error => {
+                  console.error('Erro ao solicitar permissão:', error);
+                });
+              } else {
+                // Permissão negada - logar para debug
+                console.warn('Notificações desktop bloqueadas pelo usuário');
+              }
+            }
+            
+            // Tocar som de notificação se habilitado
+            if (settings.notificationSound) {
+              // Usar setTimeout para garantir que só toca uma vez por notificação
+              setTimeout(() => {
+                playNotificationSound(settings.notificationVolume, settings.notificationSoundFile || 'notification.wav');
+              }, 100);
+            }
+            
+            // Mostrar toast de notificação
+            showSuccessToast(`${updatedStreamer.name} está ao vivo! 🎬`, updatedStreamer.streamInfo?.game || '');
+          }
+        }
+      });
+      
+      // Atualizar estado após verificar notificações
       setStreamers(updatedStreamers);
-    }, 60000);
+    }, intervalMs);
 
     // Cleanup
     return () => {
@@ -233,7 +478,19 @@ function App() {
         intervalRef.current = null;
       }
     };
-  }, [streamers.length]); // Só executa quando o número de streamers muda
+  }, [
+    streamers.length,
+    settings.desktopNotifications,
+    settings.notificationSound,
+    settings.notificationSoundFile,
+    settings.notificationVolume,
+    settings.notifications,
+    settings.notifyOnlyFavorites,
+    settings.autoRefresh,
+    settings.refreshInterval
+    // Note: streamers não está na dependência porque usamos o valor capturado no closure
+    // para comparar com o estado anterior antes de atualizar
+  ]);
 
   const handleAddStreamer = async (data: {
     name: string;
@@ -317,12 +574,170 @@ function App() {
       />
       
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: settings.chatPosition === 'left' 
-          ? '320px 320px 1fr' 
-          : '320px 1fr 320px',
+        display: 'flex',
         flex: 1,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
+        {/* Se chat está à esquerda: Chat → Streams → Sidebar */}
+        {/* Se chat está à direita: Sidebar → Streams → Chat */}
+        
+        {/* Chat à esquerda */}
+        {settings.chatPosition === 'left' && chatVisible && (
+          <div style={{ 
+            width: `${chatWidth}px`,
+            position: 'relative',
+            transition: isResizing === 'chat' ? 'none' : 'width 0.3s ease',
+            minWidth: 250,
+            maxWidth: 600
+          }}>
+            <ChatPanel 
+              streamers={streamers}
+              selectedStreamer={selectedStreamers[0]}
+              viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+            />
+            {/* Handle de redimensionamento */}
+            <div
+              onMouseDown={(e) => handleResizeStart('chat', e)}
+              onMouseEnter={() => setHoveredResizer('chat')}
+              onMouseLeave={() => setHoveredResizer(null)}
+              style={{
+                position: 'absolute',
+                right: '-5px',
+                top: 0,
+                bottom: 0,
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: 50,
+                backgroundColor: 'transparent'
+              }}
+            >
+              {/* Botão reset visível quando largura foi alterada */}
+              {chatWidthChanged && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetColumnWidth('chat');
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '-12px',
+                    width: '20px',
+                    height: '20px',
+                    background: 'rgba(147, 51, 234, 0.9)',
+                    border: '1px solid rgba(147, 51, 234, 0.5)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    zIndex: 150,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                    opacity: hoveredResizer === 'chat' ? 1 : 0.7
+                  }}
+                  onMouseEnter={() => setHoveredResizer('chat')}
+                  onMouseLeave={() => setHoveredResizer(null)}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 0.9)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.opacity = '0.7';
+                  }}
+                  title="Resetar largura"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+            {/* Botão toggle chat */}
+            <button
+              onClick={() => setChatVisible(false)}
+              style={{
+                position: 'absolute',
+                right: '-15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '30px',
+                height: '60px',
+                background: 'rgba(147, 51, 234, 0.8)',
+                border: '1px solid rgba(147, 51, 234, 0.5)',
+                borderRadius: '0 8px 8px 0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                zIndex: 100,
+                transition: 'all 0.2s ease',
+                boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                e.currentTarget.style.width = '35px';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+                e.currentTarget.style.width = '30px';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>◀</span>
+            </button>
+          </div>
+        )}
+        
+        {/* Botão para mostrar chat quando escondido à esquerda */}
+        {settings.chatPosition === 'left' && !chatVisible && (
+          <button
+            onClick={() => setChatVisible(true)}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '60px',
+              background: 'rgba(147, 51, 234, 0.8)',
+              border: '1px solid rgba(147, 51, 234, 0.5)',
+              borderRadius: '0 8px 8px 0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              zIndex: 100,
+              transition: 'all 0.2s ease',
+              boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+              e.currentTarget.style.width = '35px';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+              e.currentTarget.style.width = '30px';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>▶</span>
+          </button>
+        )}
+        
+        {/* Sidebar - aparece à esquerda quando chat está à direita, ou à direita quando chat está à esquerda */}
+        {sidebarVisible && settings.chatPosition === 'right' && (
+          <div style={{ 
+            width: `${sidebarWidth}px`,
+            position: 'relative',
+            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s ease',
+            minWidth: 250,
+            maxWidth: 600
       }}>
         <Sidebar 
           streamers={streamers}
@@ -338,19 +753,147 @@ function App() {
           onToggleNotifications={handleToggleNotifications}
           settings={settings}
         />
-        
-        {settings.chatPosition === 'left' && (
-          <ChatPanel 
-            streamers={streamers}
-            selectedStreamer={selectedStreamers[0]}
-            viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
-          />
+            {/* Handle de redimensionamento */}
+            <div
+              onMouseDown={(e) => handleResizeStart('sidebar', e)}
+              onMouseEnter={() => setHoveredResizer('sidebar')}
+              onMouseLeave={() => setHoveredResizer(null)}
+              style={{
+                position: 'absolute',
+                right: '-5px',
+                top: 0,
+                bottom: 0,
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: 50,
+                backgroundColor: 'transparent'
+              }}
+            >
+              {/* Botão reset visível quando largura foi alterada */}
+              {sidebarWidthChanged && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetColumnWidth('sidebar');
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '-12px',
+                    width: '20px',
+                    height: '20px',
+                    background: 'rgba(147, 51, 234, 0.9)',
+                    border: '1px solid rgba(147, 51, 234, 0.5)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    zIndex: 150,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                    opacity: hoveredResizer === 'sidebar' ? 1 : 0.7
+                  }}
+                  onMouseEnter={() => setHoveredResizer('sidebar')}
+                  onMouseLeave={() => setHoveredResizer(null)}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 0.9)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.opacity = '0.7';
+                  }}
+                  title="Resetar largura"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+            {/* Botão toggle sidebar */}
+            <button
+              onClick={() => setSidebarVisible(false)}
+              style={{
+                position: 'absolute',
+                right: '-15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '30px',
+                height: '60px',
+                background: 'rgba(147, 51, 234, 0.8)',
+                border: '1px solid rgba(147, 51, 234, 0.5)',
+                borderRadius: '0 8px 8px 0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                zIndex: 100,
+                transition: 'all 0.2s ease',
+                boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                e.currentTarget.style.width = '35px';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+                e.currentTarget.style.width = '30px';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>◀</span>
+            </button>
+          </div>
         )}
         
+        {/* Botão para mostrar sidebar quando escondida e chat está à direita */}
+        {!sidebarVisible && settings.chatPosition === 'right' && (
+          <button
+            onClick={() => setSidebarVisible(true)}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '60px',
+              background: 'rgba(147, 51, 234, 0.8)',
+              border: '1px solid rgba(147, 51, 234, 0.5)',
+              borderRadius: '0 8px 8px 0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              zIndex: 100,
+              transition: 'all 0.2s ease',
+              boxShadow: '2px 0 8px rgba(0, 0, 0, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+              e.currentTarget.style.width = '35px';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+              e.currentTarget.style.width = '30px';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>▶</span>
+          </button>
+        )}
+        
+        {/* Coluna do meio - Streams (sempre no meio) */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column',
-          minHeight: 0
+          minHeight: 0,
+          flex: 1,
+          minWidth: 0
         }}>
           <StreamGrid 
             streamers={streamers}
@@ -366,12 +909,299 @@ function App() {
           />
         </div>
         
-        {settings.chatPosition === 'right' && (
+        {/* Sidebar à direita quando chat está à esquerda */}
+        {sidebarVisible && settings.chatPosition === 'left' && (
+          <div style={{ 
+            width: `${sidebarWidth}px`,
+            position: 'relative',
+            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s ease',
+            minWidth: 250,
+            maxWidth: 600
+          }}>
+            <Sidebar 
+              streamers={streamers}
+              onRemoveStreamer={handleRemoveStreamer}
+              onToggleViewing={(streamerId) => {
+                const streamer = streamers.find(s => s.id === streamerId);
+                if (streamer) {
+                  handleToggleViewing(streamer);
+                }
+              }}
+              viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
+              onToggleFavorite={handleToggleFavorite}
+              onToggleNotifications={handleToggleNotifications}
+              settings={settings}
+            />
+            {/* Handle de redimensionamento */}
+            <div
+              onMouseDown={(e) => handleResizeStart('sidebar', e)}
+              onMouseEnter={() => setHoveredResizer('sidebar')}
+              onMouseLeave={() => setHoveredResizer(null)}
+              style={{
+                position: 'absolute',
+                left: '-5px',
+                top: 0,
+                bottom: 0,
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: 50,
+                backgroundColor: 'transparent'
+              }}
+            >
+              {/* Botão reset visível quando largura foi alterada */}
+              {sidebarWidthChanged && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetColumnWidth('sidebar');
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '-12px',
+                    width: '20px',
+                    height: '20px',
+                    background: 'rgba(147, 51, 234, 0.9)',
+                    border: '1px solid rgba(147, 51, 234, 0.5)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    zIndex: 150,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 0.9)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  title="Resetar largura"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+            {/* Botão toggle sidebar */}
+            <button
+              onClick={() => setSidebarVisible(false)}
+              style={{
+                position: 'absolute',
+                left: '-15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '30px',
+                height: '60px',
+                background: 'rgba(147, 51, 234, 0.8)',
+                border: '1px solid rgba(147, 51, 234, 0.5)',
+                borderRadius: '8px 0 0 8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                zIndex: 100,
+                transition: 'all 0.2s ease',
+                boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                e.currentTarget.style.width = '35px';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+                e.currentTarget.style.width = '30px';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>▶</span>
+            </button>
+          </div>
+        )}
+        
+        {/* Botão para mostrar sidebar quando escondida e chat está à esquerda */}
+        {!sidebarVisible && settings.chatPosition === 'left' && (
+          <button
+            onClick={() => setSidebarVisible(true)}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '60px',
+              background: 'rgba(147, 51, 234, 0.8)',
+              border: '1px solid rgba(147, 51, 234, 0.5)',
+              borderRadius: '8px 0 0 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              zIndex: 100,
+              transition: 'all 0.2s ease',
+              boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+              e.currentTarget.style.width = '35px';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+              e.currentTarget.style.width = '30px';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>◀</span>
+          </button>
+        )}
+        
+        {/* Chat à direita */}
+        {settings.chatPosition === 'right' && chatVisible && (
+          <div style={{ 
+            width: `${chatWidth}px`,
+            position: 'relative',
+            transition: isResizing === 'chat' ? 'none' : 'width 0.3s ease',
+            minWidth: 250,
+            maxWidth: 600
+          }}>
           <ChatPanel 
             streamers={streamers}
             selectedStreamer={selectedStreamers[0]}
             viewingStreamers={new Set(selectedStreamers.map(s => s.id))}
           />
+            {/* Handle de redimensionamento */}
+            <div
+              onMouseDown={(e) => handleResizeStart('chat', e)}
+              onMouseEnter={() => setHoveredResizer('chat')}
+              onMouseLeave={() => setHoveredResizer(null)}
+              style={{
+                position: 'absolute',
+                left: '-5px',
+                top: 0,
+                bottom: 0,
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: 50,
+                backgroundColor: 'transparent'
+              }}
+            >
+              {/* Botão reset visível quando largura foi alterada */}
+              {chatWidthChanged && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetColumnWidth('chat');
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '-12px',
+                    width: '20px',
+                    height: '20px',
+                    background: 'rgba(147, 51, 234, 0.9)',
+                    border: '1px solid rgba(147, 51, 234, 0.5)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    zIndex: 150,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(147, 51, 234, 0.9)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  title="Resetar largura"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+            {/* Botão toggle chat */}
+            <button
+              onClick={() => setChatVisible(false)}
+              style={{
+                position: 'absolute',
+                left: '-15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '30px',
+                height: '60px',
+                background: 'rgba(147, 51, 234, 0.8)',
+                border: '1px solid rgba(147, 51, 234, 0.5)',
+                borderRadius: '8px 0 0 8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                zIndex: 100,
+                transition: 'all 0.2s ease',
+                boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+                e.currentTarget.style.width = '35px';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+                e.currentTarget.style.width = '30px';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>▶</span>
+            </button>
+          </div>
+        )}
+        
+        {/* Botão para mostrar chat quando escondido à direita */}
+        {settings.chatPosition === 'right' && !chatVisible && (
+          <button
+            onClick={() => setChatVisible(true)}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '60px',
+              background: 'rgba(147, 51, 234, 0.8)',
+              border: '1px solid rgba(147, 51, 234, 0.5)',
+              borderRadius: '8px 0 0 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              zIndex: 100,
+              transition: 'all 0.2s ease',
+              boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 1)';
+              e.currentTarget.style.width = '35px';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(147, 51, 234, 0.8)';
+              e.currentTarget.style.width = '30px';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>◀</span>
+          </button>
         )}
       </div>
 

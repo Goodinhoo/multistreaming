@@ -41,6 +41,44 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
   const [pendingSettings, setPendingSettings] = useState<AppSettings>(settings);
   
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Lista de sons disponíveis - atualizada com todos os arquivos
+  const availableSounds = [
+    { value: 'notification.wav', label: '🔔 Som Padrão' },
+    { value: 'mixkit-bell-notification-933.wav', label: '🔔 Sino' },
+    { value: 'mixkit-bonus-earned-in-video-game-2058.wav', label: '🎮 Bônus (Jogo)' },
+    { value: 'mixkit-bubble-pop-up-alert-notification-2357.wav', label: '💬 Bolha Pop' },
+    { value: 'mixkit-cartoon-laugh-voice-2882.wav', label: '😄 Risada Cartoon' },
+    { value: 'mixkit-cartoon-toy-whistle-616.wav', label: '🎵 Apito Cartoon' },
+    { value: 'mixkit-clear-announce-tones-2861.wav', label: '📢 Anúncio Claro' },
+    { value: 'mixkit-clown-horn-at-circus-715.wav', label: '🎪 Trombeta de Circo' },
+    { value: 'mixkit-correct-answer-tone-2870.wav', label: '✅ Resposta Correta' },
+    { value: 'mixkit-dry-pop-up-notification-alert-2356.wav', label: '🔊 Pop Seco' },
+    { value: 'mixkit-flute-mobile-phone-notification-alert-2316.wav', label: '📱 Flauta Mobile' },
+    { value: 'mixkit-funny-squeaky-toy-hits-2813.wav', label: '🎭 Brinquedo Engraçado' },
+    { value: 'mixkit-gaming-lock-2848.wav', label: '🎯 Lock Gaming' },
+    { value: 'mixkit-guitar-stroke-down-slow-2339.wav', label: '🎸 Guitarra Down' },
+    { value: 'mixkit-guitar-stroke-up-slow-2338.wav', label: '🎸 Guitarra Up' },
+    { value: 'mixkit-interface-option-select-2573.wav', label: '🖱️ Seleção Interface' },
+    { value: 'mixkit-laughing-cartoon-creature-414.wav', label: '😆 Criatura Rindo' },
+    { value: 'mixkit-long-pop-2358.wav', label: '🔊 Pop Longo' },
+    { value: 'mixkit-mechanical-brush-transition-3146.wav', label: '🔧 Transição Mecânica' },
+    { value: 'mixkit-message-pop-alert-2354.mp3', label: '💬 Mensagem Pop' },
+    { value: 'mixkit-police-whistle-614.wav', label: '🚨 Apito Policial' },
+    { value: 'mixkit-sad-game-over-trombone-471.wav', label: '😢 Game Over' },
+    { value: 'mixkit-slot-machine-win-alert-1931.wav', label: '🎰 Slot Machine Win' },
+    { value: 'mixkit-software-interface-back-2575.wav', label: '⬅️ Interface Back' },
+    { value: 'mixkit-wrong-answer-fail-notification-946.wav', label: '❌ Resposta Errada' }
+  ];
+  
+  // Função para testar o som selecionado
+  const testSound = (soundFile: string) => {
+    const audio = new Audio(`/sounds/${soundFile}`);
+    audio.volume = (pendingSettings.notificationVolume || 50) / 100;
+    audio.play().catch(() => {
+      showSuccessToast('Erro', 'Não foi possível reproduzir o som. Verifique se o arquivo existe.');
+    });
+  };
 
   const platformIcons = {
     twitch: <Tv size={12} style={{ color: '#9146ff' }} />,
@@ -213,21 +251,22 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
         zIndex: 1000,
         padding: '2rem'
       }}>
-               <div style={{
+               <div className={`${animatedModalClass} options-modal`} style={{
                  background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
                  borderRadius: '20px',
-                 width: '100%',
-                 maxWidth: '1000px',
                  height: '90vh',
+                 width: "60%",
                  display: 'flex',
                  flexDirection: 'column',
                  border: '1px solid rgba(147, 51, 234, 0.3)',
                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
                  overflow: 'hidden'
-               }} className={animatedModalClass}>
+               }}>
           {/* Header Fixo */}
           <div style={{
             padding: '1.5rem 2rem 0 2rem',
+            paddingLeft: '2rem',
+            paddingRight: '2rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             background: 'rgba(147, 51, 234, 0.05)',
             flexShrink: 0
@@ -416,6 +455,8 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
           <div style={{
             flex: 1,
             padding: '2rem',
+            paddingLeft: '2rem',
+            paddingRight: '2rem',
             overflowY: 'auto',
             background: 'rgba(0, 0, 0, 0.1)'
           }}>
@@ -611,6 +652,377 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                         }} />
                       </button>
                     </div>
+                    
+                    {/* Som de Notificação - só aparece se notificações estiverem ativadas */}
+                    {pendingSettings.notifications && (
+                      <div style={{
+                        marginTop: '1rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{
+                          marginBottom: '0.75rem'
+                        }}>
+                          <h4 style={{
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            color: 'white',
+                            margin: '0 0 0.25rem 0'
+                          }}>
+                            🔊 Som de Notificação
+                          </h4>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            margin: 0
+                          }}>
+                            Escolha o arquivo de som
+                          </p>
+                        </div>
+                        
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem'
+                        }}>
+                            <select
+                              value={pendingSettings.notificationSoundFile || 'notification.wav'}
+                              onChange={(e) => {
+                                const selectedSound = e.target.value;
+                                handleSettingChange('notificationSoundFile', selectedSound);
+                                // Tocar o som automaticamente quando selecionar
+                                testSound(selectedSound);
+                              }}
+                              style={{
+                                background: 'rgba(15, 15, 35, 0.8)',
+                                border: '1px solid rgba(147, 51, 234, 0.3)',
+                                borderRadius: '8px',
+                                padding: '0.5rem',
+                                color: 'white',
+                                fontSize: '0.875rem',
+                                width: '100%',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.6)';
+                                e.currentTarget.style.background = 'rgba(15, 15, 35, 0.95)';
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+                                e.currentTarget.style.background = 'rgba(15, 15, 35, 0.8)';
+                              }}
+                            >
+                            {availableSounds.map(sound => (
+                              <option key={sound.value} value={sound.value}>
+                                {sound.label}
+                              </option>
+                            ))}
+                          </select>
+                          
+                          <button
+                            onClick={() => testSound(pendingSettings.notificationSoundFile || 'notification.wav')}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: 'rgba(59, 130, 246, 0.2)',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              borderRadius: '6px',
+                              color: '#3b82f6',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              width: 'fit-content'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+                              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                            }}
+                          >
+                            ▶️ Testar Som
+                          </button>
+                        </div>
+                        
+                        {/* Volume de Notificação */}
+                        <div style={{
+                          marginTop: '1rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%'
+                          }}>
+                            <label style={{
+                              fontSize: '0.875rem',
+                              color: 'rgba(255, 255, 255, 0.9)',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              margin: 0,
+                              lineHeight: '1'
+                            }}>
+                              🔊 Volume
+                            </label>
+                            <span style={{
+                              fontSize: '0.875rem',
+                              color: '#10b981',
+                              fontWeight: '700',
+                              minWidth: '45px',
+                              textAlign: 'right',
+                              lineHeight: '1'
+                            }}>
+                              {pendingSettings.notificationVolume || 50}%
+                            </span>
+                          </div>
+                          <div style={{ 
+                            position: 'relative',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={pendingSettings.notificationVolume || 50}
+                              onChange={(e) => handleSettingChange('notificationVolume', parseInt(e.target.value))}
+                              style={{
+                                width: '100%',
+                                height: '8px',
+                                borderRadius: '4px',
+                                background: 'rgba(255, 255, 255, 0.15)',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                WebkitAppearance: 'none',
+                                appearance: 'none',
+                                margin: 0,
+                                padding: 0
+                              }}
+                            />
+                            <style>{`
+                              input[type="range"]::-webkit-slider-thumb {
+                                -webkit-appearance: none;
+                                appearance: none;
+                                width: 18px;
+                                height: 18px;
+                                border-radius: 50%;
+                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                cursor: pointer;
+                                border: 2px solid white;
+                                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+                                transition: all 0.2s ease;
+                                margin-top: -5px;
+                              }
+                              input[type="range"]::-webkit-slider-thumb:hover {
+                                transform: scale(1.15);
+                                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.7);
+                              }
+                              input[type="range"]::-moz-range-thumb {
+                                width: 18px;
+                                height: 18px;
+                                border-radius: 50%;
+                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                cursor: pointer;
+                                border: 2px solid white;
+                                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+                                transition: all 0.2s ease;
+                              }
+                              input[type="range"]::-moz-range-thumb:hover {
+                                transform: scale(1.15);
+                                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.7);
+                              }
+                              input[type="range"]::-webkit-slider-runnable-track {
+                                height: 8px;
+                                background: linear-gradient(to right, 
+                                  rgba(16, 185, 129, 0.8) 0%, 
+                                  rgba(16, 185, 129, 0.8) ${pendingSettings.notificationVolume || 50}%, 
+                                  rgba(255, 255, 255, 0.15) ${pendingSettings.notificationVolume || 50}%, 
+                                  rgba(255, 255, 255, 0.15) 100%
+                                );
+                                border-radius: 4px;
+                              }
+                              input[type="range"]::-moz-range-track {
+                                height: 8px;
+                                background: rgba(255, 255, 255, 0.15);
+                                border-radius: 4px;
+                              }
+                              input[type="range"]::-moz-range-progress {
+                                height: 8px;
+                                background: linear-gradient(to right, #10b981 0%, #059669 100%);
+                                border-radius: 4px;
+                              }
+                            `}</style>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Notificações Desktop - só aparece se notificações estiverem ativadas */}
+                    {pendingSettings.notifications && (
+                      <div style={{
+                        marginTop: '1rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <div>
+                            <h4 style={{
+                              fontSize: '0.9rem',
+                              fontWeight: '600',
+                              color: 'white',
+                              margin: '0 0 0.25rem 0'
+                            }}>
+                              🖥️ Notificações Desktop
+                            </h4>
+                            <p style={{
+                              fontSize: '0.8rem',
+                              color: 'rgba(255, 255, 255, 0.6)',
+                              margin: 0
+                            }}>
+                              Mostrar notificações do sistema operacional
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleSettingChange('desktopNotifications', !pendingSettings.desktopNotifications)}
+                            style={{
+                              width: '48px',
+                              height: '24px',
+                              borderRadius: '12px',
+                              background: pendingSettings.desktopNotifications ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
+                              border: 'none',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'white',
+                              position: 'absolute',
+                              top: '2px',
+                              left: pendingSettings.desktopNotifications ? '26px' : '2px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }} />
+                          </button>
+                        </div>
+                        
+                        {/* Informação sobre status de notificações */}
+                        {pendingSettings.desktopNotifications && (
+                          <div style={{
+                            marginTop: '0.75rem',
+                            fontSize: '0.8rem',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            padding: '0.75rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '6px',
+                            lineHeight: '1.4'
+                          }}>
+                            <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                              <strong>Status:</strong> {
+                                Notification.permission === 'granted' ? '✅ Permissão concedida' :
+                                Notification.permission === 'denied' ? '❌ Permissão negada' :
+                                '⚠️ Permissão pendente'
+                              }
+                            </div>
+                            <div style={{ fontSize: '0.75rem', marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                              <strong style={{ color: '#3b82f6', fontSize: '0.8rem' }}>🔧 Para Opera GX:</strong>
+                              <ol style={{ margin: '0.5rem 0 0 1.2rem', padding: 0, fontSize: '0.75rem', lineHeight: '1.6' }}>
+                                <li>Abra <code style={{ background: 'rgba(0,0,0,0.2)', padding: '0.1rem 0.3rem', borderRadius: '2px', fontSize: '0.7rem' }}>opera://settings/content/notifications</code></li>
+                                <li>Ou: Configurações → Privacidade e Segurança → Definições de Sites → Notificações</li>
+                                <li>Certifique-se que "Permitir que os sites enviem notificações" está <strong>ativado</strong></li>
+                                <li>Verifique se localhost/127.0.0.1 está na lista de sites permitidos</li>
+                                <li>Se não aparecer, adicione manualmente ou configure para "Perguntar antes de enviar"</li>
+                              </ol>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                              💡 As notificações só aparecem quando um streamer muda de <strong>offline</strong> para <strong>online</strong>. Certifique-se de que:
+                            </div>
+                            <ul style={{ fontSize: '0.8rem', margin: '0.25rem 0 0 1rem', padding: 0 }}>
+                              <li>Notificações gerais estão ativadas</li>
+                              <li>O streamer tem notificações habilitadas</li>
+                              <li>Se "Notificar Apenas Favoritos" estiver ativo, o streamer deve ser favorito</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Notificar Apenas Favoritos - só aparece se notificações estiverem ativadas */}
+                    {pendingSettings.notifications && (
+                      <div style={{
+                        marginTop: '1rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <div>
+                            <h4 style={{
+                              fontSize: '0.9rem',
+                              fontWeight: '600',
+                              color: 'white',
+                              margin: '0 0 0.25rem 0'
+                            }}>
+                              ⭐ Notificar Apenas Favoritos
+                            </h4>
+                            <p style={{
+                              fontSize: '0.8rem',
+                              color: 'rgba(255, 255, 255, 0.6)',
+                              margin: 0
+                            }}>
+                              Receber notificações apenas de streamers favoritos
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleSettingChange('notifyOnlyFavorites', !pendingSettings.notifyOnlyFavorites)}
+                            style={{
+                              width: '48px',
+                              height: '24px',
+                              borderRadius: '12px',
+                              background: pendingSettings.notifyOnlyFavorites ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
+                              border: 'none',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'white',
+                              position: 'absolute',
+                              top: '2px',
+                              left: pendingSettings.notifyOnlyFavorites ? '26px' : '2px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Animações */}
@@ -762,67 +1174,6 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                   </div>
 
                   {/* Botões de Ação */}
-                  {hasUnsavedChanges && (
-                    <div style={{
-                      display: 'flex',
-                      gap: '1rem',
-                      justifyContent: 'flex-end',
-                      padding: '1rem',
-                      background: 'rgba(147, 51, 234, 0.1)',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(147, 51, 234, 0.2)'
-                    }}>
-                      <button
-                        onClick={handleCancelChanges}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'rgba(107, 114, 128, 0.1)',
-                          border: '1px solid rgba(107, 114, 128, 0.2)',
-                          borderRadius: '8px',
-                          color: '#6b7280',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.2)';
-                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.4)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.1)';
-                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.2)';
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleSaveSettings}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.6)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
-                        }}
-                      >
-                        💾 Salvar Configurações
-                      </button>
-                    </div>
-                  )}
 
                   {/* Backup e Dados */}
                   <div style={{
@@ -1344,67 +1695,6 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                   </div>
 
                   {/* Botões de Ação */}
-                  {hasUnsavedChanges && (
-                    <div style={{
-                      display: 'flex',
-                      gap: '1rem',
-                      justifyContent: 'flex-end',
-                      padding: '1rem',
-                      background: 'rgba(147, 51, 234, 0.1)',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(147, 51, 234, 0.2)'
-                    }}>
-                      <button
-                        onClick={handleCancelChanges}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'rgba(107, 114, 128, 0.1)',
-                          border: '1px solid rgba(107, 114, 128, 0.2)',
-                          borderRadius: '8px',
-                          color: '#6b7280',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.2)';
-                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.4)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = 'rgba(107, 114, 128, 0.1)';
-                          e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.2)';
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleSaveSettings}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.6)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
-                        }}
-                      >
-                        💾 Salvar Configurações
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1669,11 +1959,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                     </p>
                   </div>
                 ) : (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem'
-                  }}>
+                  <div className="streamers-grid">
                     {streamers.map((streamer) => (
                       <div
                         key={streamer.id}
@@ -1963,6 +2249,8 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
             {/* Footer Fixo */}
             <div style={{
               padding: '1rem 2rem',
+              paddingLeft: '2rem',
+              paddingRight: '2rem',
               borderTop: '1px solid rgba(255, 255, 255, 0.1)',
               background: hasUnsavedChanges ? 'rgba(239, 68, 68, 0.1)' : 'rgba(147, 51, 234, 0.05)',
               flexShrink: 0,
@@ -1973,21 +2261,82 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
             }}>
               <div style={{
                 fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.6)'
+                color: 'rgba(255, 255, 255, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem'
               }}>
                 {hasUnsavedChanges ? (
                   <span style={{ color: '#ef4444', fontWeight: '600' }}>
-                    ⚠️ Alterações não guardadas! Clique em "Salvar" para aplicar.
+                    ⚠️ Alterações não guardadas!
                   </span>
                 ) : (
                   '💡 Use as tabs acima para navegar entre as configurações'
                 )}
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                  Total: {streamers.length} streamer{streamers.length !== 1 ? 's' : ''}
+                </span>
               </div>
+              
+              {/* Botões de ação */}
               <div style={{
-                fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.6)'
+                display: 'flex',
+                gap: '0.75rem',
+                alignItems: 'center'
               }}>
-                Total: {streamers.length} streamer{streamers.length !== 1 ? 's' : ''}
+                {hasUnsavedChanges && (
+                  <>
+                    <button
+                      onClick={handleCancelChanges}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'rgba(107, 114, 128, 0.1)',
+                        border: '1px solid rgba(107, 114, 128, 0.2)',
+                        borderRadius: '8px',
+                        color: '#6b7280',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(107, 114, 128, 0.2)';
+                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.4)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(107, 114, 128, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.2)';
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSaveSettings}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.6)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
+                      }}
+                    >
+                      💾 Salvar Configurações
+                    </button>
+                  </>
+                )}
               </div>
             </div>
         </div>

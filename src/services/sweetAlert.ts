@@ -211,10 +211,12 @@ export const showSuccessToast = (title: string, message: string) => {
     toast: true,
     position: 'top-end',
     showConfirmButton: false,
-    timer: 500, // Reduzido para 500ms (meio segundo)
+    timer: 500,
     timerProgressBar: true,
     width: 'auto',
     padding: '1rem',
+    background: 'rgba(15, 15, 35, 0.95)',
+    color: '#e2e8f0',
     customClass: {
       popup: 'swal-custom-popup swal-toast',
       title: 'swal-custom-title swal-toast-title'

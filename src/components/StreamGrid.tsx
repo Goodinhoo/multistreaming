@@ -16,8 +16,13 @@ interface StreamGridProps {
 const getStreamEmbedUrl = (platform: Platform, channelId: string): string => {
   const currentHost = window.location.hostname;
   switch (platform) {
-    case 'twitch':
-      return `https://player.twitch.tv/?channel=${channelId}&parent=${currentHost}&parent=localhost&parent=127.0.0.1&autoplay=true&muted=false&allowfullscreen=true`;
+    case 'twitch': {
+      // URL simplificada como no site oficial da Twitch
+      const parentParam = currentHost === 'localhost' || currentHost === '127.0.0.1' 
+        ? `${currentHost}&parent=localhost&parent=127.0.0.1`
+        : currentHost;
+      return `https://player.twitch.tv/?channel=${channelId}&parent=${parentParam}&autoplay=true`;
+    }
     case 'youtube':
       return `https://www.youtube.com/embed/${channelId}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0`;
     case 'kick':
@@ -375,10 +380,12 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                           border: 'none',
                           borderRadius: '0',
                           zIndex: 2,
-                          position: 'relative'
+                          position: 'relative',
+                          minWidth: '400px', // Requisito mínimo da Twitch para autoplay
+                          minHeight: '300px' // Requisito mínimo da Twitch para autoplay
                         }}
                         allowFullScreen
-                        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                        allow="autoplay; picture-in-picture; fullscreen"
                         frameBorder="0"
                         scrolling="no"
                         title={`${streamer.name} - ${activePlatforms[streamer.id]} stream`}
@@ -387,6 +394,38 @@ export function StreamGrid({ streamers, selectedStreamer, viewingStreamers, sett
                           const loadingElement = document.getElementById(`loading-${streamer.id}`);
                           if (loadingElement) {
                             loadingElement.style.display = 'none';
+                          }
+                          
+                          // Tentar iniciar autoplay via mensagens para o player Twitch
+                          if (activePlatforms[streamer.id] === 'twitch') {
+                            try {
+                              const iframe = document.querySelector(`iframe[src*="channel=${streamer.platforms[activePlatforms[streamer.id]]}"]`) as HTMLIFrameElement;
+                              if (iframe && iframe.contentWindow) {
+                                // Aguardar mais tempo para o player estar completamente pronto
+                                const tryAutoplay = () => {
+                                  // Múltiplas tentativas com diferentes métodos
+                                  const attempts = [
+                                    { method: 'play' },
+                                    { method: 'play', params: {} },
+                                    { eventName: 'playVideo' },
+                                    { eventName: 'play', params: {} }
+                                  ];
+                                  
+                                  attempts.forEach((msg, index) => {
+                                    setTimeout(() => {
+                                      iframe.contentWindow?.postMessage(msg, 'https://player.twitch.tv');
+                                    }, index * 300);
+                                  });
+                                };
+                                
+                                // Tentar após 2 segundos e depois a cada 2 segundos
+                                setTimeout(tryAutoplay, 2000);
+                                setTimeout(tryAutoplay, 4000);
+                                setTimeout(tryAutoplay, 6000);
+                              }
+                            } catch (error) {
+                              console.log('Erro ao tentar iniciar autoplay:', error);
+                            }
                           }
                         }}
                         onError={() => {

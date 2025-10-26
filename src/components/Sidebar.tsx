@@ -68,14 +68,16 @@ export function Sidebar({
         if (a.status === 'online' && b.status === 'offline') return -1;
         if (a.status === 'offline' && b.status === 'online') return 1;
         return a.name.localeCompare(b.name);
-      case 'viewers':
+      case 'viewers': {
         const aViewers = a.streamInfo?.viewers || 0;
         const bViewers = b.streamInfo?.viewers || 0;
         return bViewers - aViewers;
-      case 'platform':
+      }
+      case 'platform': {
         const aPlatform = Object.keys(a.platforms)[0] || '';
         const bPlatform = Object.keys(b.platforms)[0] || '';
         return aPlatform.localeCompare(bPlatform);
+      }
       default:
         return 0;
     }
@@ -115,45 +117,59 @@ export function Sidebar({
               key={streamer.id}
       className={`${cardClasses} ${pulseClass}`}
               style={{
-        background: viewingStreamers.has(streamer.id) 
-          ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%)'
-          : 'rgba(255, 255, 255, 0.05)',
-        border: viewingStreamers.has(streamer.id) 
-          ? '2px solid rgba(147, 51, 234, 0.6)' 
-          : '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '12px',
-                padding: '0.75rem',
-        marginBottom: '0.5rem',
+              background: viewingStreamers.has(streamer.id) 
+                ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%)'
+                : 'rgba(255, 255, 255, 0.05)',
+              border: viewingStreamers.has(streamer.id) 
+                ? '2px solid rgba(147, 51, 234, 0.6)' 
+                : '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '0.4rem',
+              marginBottom: '0.5rem',
                 cursor: 'pointer',
         transition: animationsEnabled ? 'all 0.3s ease' : 'none',
         position: 'relative',
         backdropFilter: 'blur(10px)',
-        minHeight: 'auto'
+        minHeight: 'auto',
+        opacity: 1
               }}
       onClick={() => onToggleViewing(streamer.id)}
-              onMouseOver={(e) => {
+              onMouseEnter={(e) => {
         if (!viewingStreamers.has(streamer.id)) {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-          e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
-          // Só aplica transform se animações estão habilitadas
+          const card = e.currentTarget;
+          card.style.background = 'rgba(255, 255, 255, 0.08)';
+          card.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+          // Aplicar pulse apenas com CSS transform, sem usar classes animate.css
           if (animationsEnabled) {
-            e.currentTarget.style.transform = 'translateY(-2px)';
+            card.style.transform = 'translateY(-2px) scale(1.01)';
+            // Usar um loop suave com requestAnimationFrame
+            const startTime = Date.now();
+            const pulseEffect = () => {
+              const elapsed = Date.now() - startTime;
+              const scale = 1.01 + Math.sin(elapsed / 1000) * 0.01;
+              if (card.matches(':hover')) {
+                card.style.transform = `translateY(-2px) scale(${scale})`;
+                requestAnimationFrame(pulseEffect);
+              } else {
+                card.style.transform = 'translateY(0) scale(1)';
+              }
+            };
+            requestAnimationFrame(pulseEffect);
           } else {
-            // Garantir que não há transform quando animações estão desabilitadas
-            e.currentTarget.style.transform = 'none';
+            card.style.transform = 'none';
           }
-                }
+        }
               }}
-              onMouseOut={(e) => {
+              onMouseLeave={(e) => {
         if (!viewingStreamers.has(streamer.id)) {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-          // Só aplica transform se animações estão habilitadas
+          const card = e.currentTarget;
+          card.style.background = 'rgba(255, 255, 255, 0.05)';
+          card.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          // Remover transform suavemente
           if (animationsEnabled) {
-            e.currentTarget.style.transform = 'translateY(0)';
+            card.style.transform = 'translateY(0) scale(1)';
           } else {
-            // Garantir que não há transform quando animações estão desabilitadas
-            e.currentTarget.style.transform = 'none';
+            card.style.transform = 'none';
           }
         }
       }}
@@ -162,18 +178,18 @@ export function Sidebar({
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '0.25rem'
+        gap: '0.4rem',
+        marginBottom: '0.1rem'
               }}>
                 <div style={{
-          width: '32px',
-          height: '32px',
+          width: '28px',
+          height: '28px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)',
                   display: 'flex',
                   alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '0.9rem',
+          fontSize: '0.8rem',
           overflow: 'hidden',
           flexShrink: 0
                 }}>
@@ -212,10 +228,10 @@ export function Sidebar({
         
         <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{
-                fontSize: '0.85rem',
+                    fontSize: '0.8rem',
             fontWeight: '600',
                       color: 'white',
-            margin: '0 0 0.15rem 0',
+            margin: '0 0 0.05rem 0',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
@@ -228,7 +244,7 @@ export function Sidebar({
             <p style={{
               fontSize: '0.65rem',
               color: 'rgba(255, 255, 255, 0.7)',
-              margin: '0 0 0.15rem 0',
+              margin: '0 0 0.1rem 0',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -269,27 +285,35 @@ export function Sidebar({
           {/* Platforms and Actions */}
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '0.25rem'
+            flexDirection: 'column',
+            gap: '0.25rem',
+            marginTop: '0.1rem'
           }}>
-            {/* Left side - Platform buttons */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-              gap: '0.3rem'
-            }}>
+            {/* Platform buttons - com scroll horizontal se necessário */}
+            <div 
+              className="platform-buttons-scroll"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+              gap: '0.25rem',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: '1px'
+              }}
+            >
               {Object.entries(streamer.platforms).map(([platform, channelId]) => (
                 channelId && (
                   <div key={platform} style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.2rem',
-                  padding: '0.15rem 0.4rem',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  color: 'rgba(255, 255, 255, 0.8)'
+                    padding: '0.15rem 0.35rem',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap'
                   }}>
                     {platformIcons[platform as keyof typeof platformIcons]}
                     <span style={{ textTransform: 'capitalize' }}>{platform}</span>
@@ -298,11 +322,13 @@ export function Sidebar({
               ))}
             </div>
 
-            {/* Right side - Action buttons */}
-                  <div style={{
+            {/* Action buttons - sempre visíveis */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              justifyContent: 'flex-end',
+              gap: '0.3rem',
+              flexShrink: 0
             }}>
               {/* Notification Button */}
               <button
@@ -435,7 +461,7 @@ export function Sidebar({
                   </button>
                 </div>
               </div>
-            </div>
+          </div>
     );
   };
   

@@ -10,7 +10,7 @@ interface HeaderProps {
 export function Header({ onAddStreamer, onOpenOptions, onOpenDashboard }: HeaderProps) {
   const animatedLogoClass = useAnimatedClassWithDuration('', 'animate__zoomIn', 500);
   const dashboardIconClass = useHoverAnimation('', 'icon-hover-tada');
-  const settingsIconClass = useHoverAnimation('', 'icon-hover-jello');
+  const settingsIconClass = useInfiniteAnimation('gear-rotate', '', 2000);
   const plusIconClass = useHoverAnimation('', 'icon-hover-gentle');
   const addButtonPulseClass = useInfiniteAnimation('', 'animate__pulse', 2000);
   

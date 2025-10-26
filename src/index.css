@@ -81,6 +81,31 @@ html, body {
   transition: none !important;
 }
 
+/* Scroll horizontal para botões de plataforma */
+.platform-buttons-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 51, 234, 0.3) transparent;
+}
+
+.platform-buttons-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.platform-buttons-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.platform-buttons-scroll::-webkit-scrollbar-thumb {
+  background: rgba(147, 51, 234, 0.3);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.platform-buttons-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(147, 51, 234, 0.5);
+}
+
 /* Animações globais */
 @keyframes fadeIn {
   from {
@@ -129,9 +154,11 @@ html, body {
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.9;
+    transform: scale(1.02);
   }
 }
 
@@ -247,17 +274,56 @@ html, body {
   animation: float 3s ease-in-out infinite;
 }
 
+/* Animação de rotação infinita para gear icon */
+.gear-rotate {
+  animation: rotateInfinite 2s linear infinite;
+}
+
+@keyframes rotateInfinite {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulse suave para cards no hover quando animações estão ativas - usando animate.css */
+.animate__pulse {
+  animation-fill-mode: both;
+}
+
+/* Garantir transição suave ao remover pulse */
+.animate__animated.animate__pulse {
+  animation-duration: 2s;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 1 !important;
+}
+
+/* Evitar flash ao remover animações */
+.animate__animated {
+  opacity: 1 !important;
+}
+
+/* Desabilitar animações quando necessário */
+.animations-disabled .gear-rotate {
+  animation: none !important;
+  transform: none !important;
+}
+
 /* Desabilitar animações quando necessário */
 .animations-disabled *,
 .animations-disabled *::before,
 .animations-disabled *::after {
   animation: none !important;
   transition: none !important;
+  transform: none !important;
 }
 
 .animations-disabled .smooth-transition,
 .animations-disabled .smooth-transition-fast,
 .animations-disabled .smooth-transition-slow,
+.animations-disabled .animate__animated,
 .animations-disabled .animate__infinite,
 .animations-disabled .animate__repeat-1,
 .animations-disabled .animate__repeat-2,
@@ -266,9 +332,34 @@ html, body {
 .animations-disabled .animate__heartBeat-infinite,
 .animations-disabled .animate__bounce-infinite,
 .animations-disabled .animate__glow-infinite,
-.animations-disabled .animate__float-infinite {
+.animations-disabled .animate__float-infinite,
+.animations-disabled .animate-fade-in,
+.animations-disabled [class*="animate__"] {
   transition: none !important;
   animation: none !important;
+  transform: none !important;
+}
+
+/* Desabilitar todas as animações do animate.css quando desabilitado */
+.animations-disabled .animate__fadeIn,
+.animations-disabled .animate__slideIn,
+.animations-disabled .animate__slideUp,
+.animations-disabled .animate__scaleIn,
+.animations-disabled .animate__pulse,
+.animations-disabled .animate__glow,
+.animations-disabled .animate__float,
+.animations-disabled .animate__heartBeat,
+.animations-disabled .animate__bounce,
+.animations-disabled .animate__zoomIn,
+.animations-disabled .animate__slideInUp,
+.animations-disabled .animate__fadeInUp,
+.animations-disabled .animate__fadeInDown,
+.animations-disabled .animate__fadeInLeft,
+.animations-disabled .animate__fadeInRight {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 /* Responsividade apenas para 1920px - não afeta 3440px */
@@ -371,5 +462,97 @@ html, body {
   [style*="minmax(400px"],
   [style*='minmax(400px'] {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+}
+
+/* Estilos para SweetAlert2 Toast - Tema Escuro */
+.swal2-popup.swal-toast {
+  background: rgba(15, 15, 35, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(147, 51, 234, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  color: #e2e8f0 !important;
+}
+
+.swal2-popup.swal-toast .swal2-title {
+  color: #e2e8f0 !important;
+  font-weight: 600 !important;
+}
+
+.swal2-popup.swal-toast .swal2-content {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.swal2-popup.swal-toast .swal2-success {
+  border-color: #10b981 !important;
+}
+
+.swal2-popup.swal-toast .swal2-success [class^='swal2-success-line'] {
+  background-color: #10b981 !important;
+}
+
+.swal2-popup.swal-toast .swal2-success-ring {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Barra de timer (progress bar) verde para toast */
+.swal2-popup.swal-toast .swal2-timer-progress-bar {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
+}
+
+/* Estilos para select option no tema escuro */
+select option {
+  background: rgba(15, 15, 35, 0.95) !important;
+  color: white !important;
+}
+
+select:focus option:checked {
+  background: rgba(147, 51, 234, 0.3) !important;
+  color: white !important;
+}
+
+/* Grid responsivo para lista de streamers nas opções */
+div.streamers-grid,
+.streamers-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+/* 2 colunas em telas de 1920px ou mais */
+@media (min-width: 1920px) {
+  div.streamers-grid,
+  .streamers-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .options-modal {
+    max-width: 900px !important;
+    width: 100% !important;
+  }
+  
+  /* Garantir padding igual dos dois lados em todas as seções */
+  .options-modal > div[style*="overflowY: auto"] {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+  
+  .options-modal > div[style*="borderBottom"] {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+}
+
+/* 3 colunas em telas de 3440px ou mais (sobrescreve a regra anterior) */
+@media (max-width: 3440px) {
+  div.streamers-grid,
+  .streamers-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  
+  .options-modal {
+    max-width: 1500px !important;
   }
 }
