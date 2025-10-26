@@ -600,9 +600,11 @@ function App() {
             display: 'flex',
             width: `${chatWidth}px`,
             position: 'relative',
-            transition: isResizing === 'chat' ? 'none' : 'width 0.3s ease',
+            transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600
+            maxWidth: 600,
+            animation: chatVisible ? 'slideInLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            animationFillMode: 'both'
           }}>
             {/* Coluna de Avatares - mesma funcionalidade da barra horizontal */}
             <div 
@@ -782,9 +784,11 @@ function App() {
           <div style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
-            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s ease',
+            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600
+            maxWidth: 600,
+            animation: sidebarVisible ? 'slideInLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            animationFillMode: 'both'
       }}>
         <Sidebar 
           streamers={streamers}
@@ -960,9 +964,11 @@ function App() {
           <div style={{ 
             width: `${sidebarWidth}px`,
             position: 'relative',
-            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s ease',
+            transition: isResizing === 'sidebar' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600
+            maxWidth: 600,
+            animation: sidebarVisible ? 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            animationFillMode: 'both'
           }}>
             <Sidebar 
               streamers={streamers}
@@ -1112,7 +1118,9 @@ function App() {
             position: 'relative',
             transition: isResizing === 'chat' ? 'none' : 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             minWidth: 250,
-            maxWidth: 600
+            maxWidth: 600,
+            animation: chatVisible ? 'slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            animationFillMode: 'both'
           }}>
             {/* ChatPanel */}
             <div style={{ 
