@@ -100,10 +100,16 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
 
   const getChatUrl = (platform: 'twitch' | 'youtube' | 'kick', channelId: string) => {
     const currentHost = window.location.hostname;
+    
     switch (platform) {
-      case 'twitch':
-        // Usar o mesmo padrão do código que funciona: parent com hostname atual
-        return `https://www.twitch.tv/embed/${channelId}/chat?parent=${currentHost}&darkpopout=true&theme=dark&color=#9146FF`;
+      case 'twitch': {
+        // Para localhost, usar 'localhost' como parent; para produção, usar o hostname completo
+        const parentParam = currentHost === 'localhost' || currentHost === '127.0.0.1' 
+          ? 'localhost' 
+          : currentHost;
+        // Tema escuro usando darkpopout
+        return `https://www.twitch.tv/embed/${channelId}/chat?parent=${parentParam}&darkpopout`;
+      }
       case 'youtube':
         return `https://www.youtube.com/live_chat?v=${channelId}&embed_domain=${currentHost}&theme=dark`;
       case 'kick':
@@ -402,6 +408,9 @@ export function ChatPanel({ streamers, viewingStreamers }: ChatPanelProps) {
               <iframe
                 key={`${streamer.id}-${platform}`}
                 src={getChatUrl(platform, channelId)}
+                allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+                allowFullScreen
+                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
                 style={{
                   width: '100%',
                   height: '100%',
