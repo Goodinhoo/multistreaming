@@ -2316,7 +2316,7 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                           color: 'rgba(255, 255, 255, 0.6)',
                           margin: '0.25rem 0 0 0'
                         }}>
-                          28/10/2025
+                          26/10/2025
                         </p>
                       </div>
                     </div>
