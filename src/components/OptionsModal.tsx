@@ -2333,6 +2333,8 @@ export function OptionsModal({ isOpen, onClose, streamers, onUpdateStreamer, onR
                       <li>Corrigido problema de favoritos/notificações ao clicar rapidamente</li>
                       <li>Botões de plataforma agora têm mesma altura e border-radius do botão X</li>
                       <li>Memoização otimizada para evitar re-renders desnecessários</li>
+                      <li>Arrastar colunas funciona perfeitamente - cursor não fica mais preso nos iframes</li>
+                      <li>Event listeners otimizados usando useRef para remoção correta</li>
                     </ul>
                   </div>
 

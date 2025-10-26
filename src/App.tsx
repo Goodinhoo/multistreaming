@@ -237,11 +237,21 @@ function App() {
     resizeStartWidth.current = type === 'sidebar' ? sidebarWidth : chatWidth;
   }, [sidebarWidth, chatWidth]);
   
+  // Refs para manter as funções estáveis
+  const handleMouseMoveRef = useRef<(e: MouseEvent) => void | null>(null);
+  const handleMouseUpRef = useRef<() => void | null>(null);
+  
   // Handler de mouse move global
   useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing) {
+      // Se não está redimensionando, remover estilos e sair
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      return;
+    }
     
-    const handleMouseMove = (e: MouseEvent) => {
+    // Criar funções
+    handleMouseMoveRef.current = (e: MouseEvent) => {
       if (isResizing === 'sidebar') {
         // Sidebar à esquerda (chat à direita): arrastar para direita aumenta (diff positivo)
         // Sidebar à direita (chat à esquerda): arrastar para esquerda aumenta (diff negativo vira positivo)
@@ -261,20 +271,39 @@ function App() {
       }
     };
     
-    const handleMouseUp = () => {
+    handleMouseUpRef.current = () => {
       setIsResizing(null);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
     
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    // Adicionar listeners
+    window.addEventListener('mousemove', handleMouseMoveRef.current);
+    window.addEventListener('mouseup', handleMouseUpRef.current);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     
+    // Desabilitar pointer-events em todos os iframes durante o resize
+    const allIframes = document.querySelectorAll('iframe');
+    allIframes.forEach(iframe => {
+      (iframe as HTMLElement).style.pointerEvents = 'none';
+    });
+    
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      // Remover listeners usando as referências
+      if (handleMouseMoveRef.current) {
+        window.removeEventListener('mousemove', handleMouseMoveRef.current);
+      }
+      if (handleMouseUpRef.current) {
+        window.removeEventListener('mouseup', handleMouseUpRef.current);
+      }
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      
+      // Reabilitar pointer-events em todos os iframes
+      allIframes.forEach(iframe => {
+        (iframe as HTMLElement).style.pointerEvents = 'auto';
+      });
     };
   }, [isResizing, settings.chatPosition]);
   
