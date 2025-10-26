@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Streamer } from '../types';
 import { getKickChatUrl } from '../services/kickApi';
 import { KickChatEmbed } from './KickChatEmbed';
@@ -94,8 +94,14 @@ export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, o
     }
   }, [onActiveChatStreamerChange]);
 
-  // Obter streamers que estão sendo visualizados
+    // Obter streamers que estão sendo visualizados
   const activeStreamers = streamers.filter(s => viewingStreamers.has(s.id));
+  
+  // Criar string estável dos IDs para usar como dependência
+  const activeStreamerIds = useMemo(() => 
+    activeStreamers.map(s => s.id).sort().join(','), 
+    [activeStreamers]
+  );
 
   // Sincronizar com o streamer ativo externo quando fornecido
   useEffect(() => {
@@ -113,12 +119,14 @@ export function ChatPanel({ streamers, viewingStreamers, activeChatStreamerId, o
       if (!internalActiveStreamerId) {
         setInternalActiveStreamerId(activeStreamers[0].id);
       } else if (!activeStreamers.some(s => s.id === internalActiveStreamerId)) {
+        // Só mudar se o streamer ativo não existe mais na lista
         setInternalActiveStreamerId(activeStreamers[0].id);
       }
+      // Se o streamer ativo ainda existe, manter o mesmo (não recarregar)
     } else {
       setInternalActiveStreamerId(null);
     }
-  }, [activeStreamers, internalActiveStreamerId, activeChatStreamerId, onActiveChatStreamerChange]);
+  }, [activeStreamers.length, activeStreamerIds, internalActiveStreamerId, activeChatStreamerId, onActiveChatStreamerChange]);
 
   // Definir aba ativa inicial baseada no streamer ativo
   useEffect(() => {
